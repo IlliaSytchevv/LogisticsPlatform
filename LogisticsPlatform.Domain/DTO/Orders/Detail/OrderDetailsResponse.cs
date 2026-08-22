@@ -1,0 +1,38 @@
+using LogisticsPlatform.Domain.Enums;
+
+namespace LogisticsPlatform.Domain.DTO.Orders.Detail;
+
+public sealed record OrderDetailsResponse(
+    Guid Id,
+    string Number,
+    OrderType Type,
+    string TypeLabel,
+    OrderStatus Status,
+    string StatusLabel,
+    string? PrimaryReference,
+    string? CustomerName,
+    string? Phone,
+    Guid HubId,
+    string HubName,
+    string? HubRegionCode,
+    DateTimeOffset ScheduledAt,
+    Guid? CarrierId,
+    string? CarrierName,
+    string? TrailerType,
+    string? TruckNumber,
+    string? TrailerNumber,
+    Guid? AssignedToUserId,
+    string? AssignedToUserName,
+    IReadOnlyList<string> Services,
+    string? StockStatusLabel,
+    string? LoadingStatusLabel,
+    bool HasAlert,
+    string? AlertReason,
+    OrderAssignedDockResponse AssignedDock,
+    OrderQtyBlockResponse Expected,
+    OrderQtyBlockResponse Actual,
+    int QtyDelta,
+    OrderWarehouseNoteResponse WarehouseNote,
+    IReadOnlyList<OrderOperationResponse> Operations,
+    IReadOnlyList<OrderSupplyResponse> Supplies,
+    long SuppliesSubtotalCents);
