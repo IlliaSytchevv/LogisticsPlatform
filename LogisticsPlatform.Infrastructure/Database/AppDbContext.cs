@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OrderOperation> OrderOperations { get; set; }
     public DbSet<OrderSupply> OrderSupplies { get; set; }
     public DbSet<OrderWarehousePhoto> OrderWarehousePhotos { get; set; }
+    public DbSet<OrderComment> OrderComments { get; set; }
     public DbSet<HubDock> HubDocks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)

@@ -36,14 +36,33 @@ public interface IOrderDetailsRepository
 
     Task<bool> SoftDeleteSupplyAsync(Guid orderId, Guid supplyId, CancellationToken cancellationToken);
 
+    Task<int> CountWarehousePhotosAsync(Guid orderId, CancellationToken cancellationToken);
+
     Task<OrderWarehousePhotoData> AddWarehousePhotoAsync(
         Guid orderId,
-        string url,
+        string fileName,
+        string contentType,
+        byte[] content,
         int sortOrder,
+        CancellationToken cancellationToken);
+
+    Task<OrderWarehousePhotoContentData?> GetWarehousePhotoContentAsync(
+        Guid orderId,
+        Guid photoId,
         CancellationToken cancellationToken);
 
     Task<bool> SoftDeleteWarehousePhotoAsync(
         Guid orderId,
         Guid photoId,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<OrderCommentData>> GetCommentsAsync(
+        Guid orderId,
+        CancellationToken cancellationToken);
+
+    Task<OrderCommentData> AddCommentAsync(
+        Guid orderId,
+        string text,
+        string? authorName,
         CancellationToken cancellationToken);
 }

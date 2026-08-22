@@ -2,5 +2,7 @@ namespace LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 public sealed record OrderWarehousePhotoResponse(
     Guid Id,
-    string Url,
-    int SortOrder);
+    string FileName,
+    string ContentType,
+    int SortOrder,
+    string DownloadUrl);

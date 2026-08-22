@@ -71,8 +71,23 @@ public sealed record OrderSupplyData(
 
 public sealed record OrderWarehousePhotoData(
     Guid Id,
-    string Url,
+    Guid OrderId,
+    string FileName,
+    string ContentType,
     int SortOrder);
+
+public sealed record OrderWarehousePhotoContentData(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    byte[] Content);
+
+public sealed record OrderCommentData(
+    Guid Id,
+    Guid OrderId,
+    string Text,
+    string? AuthorName,
+    DateTimeOffset CreatedAt);
 
 public sealed record OrderHubDockData(
     string Code,

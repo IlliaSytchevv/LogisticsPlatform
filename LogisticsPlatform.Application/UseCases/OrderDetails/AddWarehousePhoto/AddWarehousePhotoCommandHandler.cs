@@ -17,10 +17,26 @@ public sealed class AddWarehousePhotoCommandHandler(IOrderDetailsRepository orde
         if (!await orderDetailsRepository.ExistsAsync(command.OrderId, cancellationToken))
             return Result<OrderWarehousePhotoResponse>.NotFound();
 
+        int count = await orderDetailsRepository.CountWarehousePhotosAsync(
+            command.OrderId,
+            cancellationToken);
+
+        if (count >= AddWarehousePhotoCommandValidator.MaxPhotosPerOrder)
+        {
+            return Result<OrderWarehousePhotoResponse>.Invalid(
+            [
+                new ValidationError(
+                    "Content",
+                    $"Order already has {AddWarehousePhotoCommandValidator.MaxPhotosPerOrder} photos.")
+            ]);
+        }
+
         OrderWarehousePhotoData data = await orderDetailsRepository.AddWarehousePhotoAsync(
             command.OrderId,
-            command.Url,
-            command.SortOrder ?? 0,
+            command.FileName,
+            command.ContentType,
+            command.Content,
+            command.SortOrder ?? count,
             cancellationToken);
 
         return Result.Success(OrderDetailsMapper.ToResponse(data));

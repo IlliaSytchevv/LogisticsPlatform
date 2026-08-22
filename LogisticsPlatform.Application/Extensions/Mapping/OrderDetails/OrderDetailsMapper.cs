@@ -59,7 +59,7 @@ public static class OrderDetailsMapper
             new OrderWarehouseNoteResponse(
                 data.WarehouseNote,
                 data.WarehousePhotos
-                    .Select(p => new OrderWarehousePhotoResponse(p.Id, p.Url, p.SortOrder))
+                    .Select(p => ToResponse(p))
                     .ToList()),
             data.Operations.Select(ToResponse).ToList(),
             data.Supplies.Select(ToResponse).ToList(),
@@ -88,7 +88,15 @@ public static class OrderDetailsMapper
             data.LineTotalCents);
 
     public static OrderWarehousePhotoResponse ToResponse(OrderWarehousePhotoData data) =>
-        new(data.Id, data.Url, data.SortOrder);
+        new(
+            data.Id,
+            data.FileName,
+            data.ContentType,
+            data.SortOrder,
+            $"/api/orders/{data.OrderId}/warehouse-photos/{data.Id}");
+
+    public static OrderCommentResponse ToResponse(OrderCommentData data) =>
+        new(data.Id, data.Text, data.AuthorName, data.CreatedAt);
 
     public static string FormatOperationType(OrderOperationType type) => type switch
     {

@@ -1,4 +1,5 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.UseCases.OrderDetails.AddComment;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperation;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddSupply;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddWarehousePhoto;
@@ -6,8 +7,10 @@ using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteOperation;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteSupply;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetBolPdf;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetComments;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetOrderDetails;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetQr;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateOrder;
 using LogisticsPlatform.Domain.DTO.Orders.Detail;
 using Microsoft.AspNetCore.Mvc;
@@ -129,16 +132,45 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
     }
 
     [HttpPost("{id:guid}/warehouse-photos")]
+    [RequestSizeLimit(AddWarehousePhotoCommandValidator.MaxFileBytes)]
     public async Task<IActionResult> AddWarehousePhoto(
         Guid id,
-        [FromBody] AddWarehousePhotoRequest request,
+        IFormFile file,
+        [FromForm] int? sortOrder,
         CancellationToken cancellationToken)
     {
+        if (file is null || file.Length == 0)
+            return BadRequest("File is required.");
+
+        await using var memory = new MemoryStream();
+        await file.CopyToAsync(memory, cancellationToken);
+
         var result = await Dispatcher.Send(
-            new AddWarehousePhotoCommand(id, request.Url, request.SortOrder),
+            new AddWarehousePhotoCommand(
+                id,
+                file.FileName,
+                file.ContentType,
+                memory.ToArray(),
+                sortOrder),
             cancellationToken);
 
         return GetActionResult(result);
+    }
+
+    [HttpGet("{id:guid}/warehouse-photos/{photoId:guid}")]
+    public async Task<IActionResult> GetWarehousePhoto(
+        Guid id,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new GetWarehousePhotoQuery(id, photoId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return GetActionResult(result);
+
+        return await WriteFileAsync(result.Value, inline: true, cancellationToken);
     }
 
     [HttpDelete("{id:guid}/warehouse-photos/{photoId:guid}")]
@@ -154,6 +186,26 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [HttpGet("{id:guid}/comments")]
+    public async Task<IActionResult> GetComments(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(new GetOrderCommentsQuery(id), cancellationToken);
+        return GetActionResult(result);
+    }
+
+    [HttpPost("{id:guid}/comments")]
+    public async Task<IActionResult> AddComment(
+        Guid id,
+        [FromBody] AddOrderCommentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new AddOrderCommentCommand(id, request.Text, request.AuthorName),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
     [HttpGet("{id:guid}/bol.pdf")]
     public async Task<IActionResult> GetBolPdf(Guid id, CancellationToken cancellationToken)
     {
@@ -161,7 +213,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         if (!result.IsSuccess)
             return GetActionResult(result);
 
-        return await WriteFileAsync(result.Value, cancellationToken);
+        return await WriteFileAsync(result.Value, inline: false, cancellationToken);
     }
 
     [HttpGet("{id:guid}/qr")]
@@ -171,15 +223,17 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         if (!result.IsSuccess)
             return GetActionResult(result);
 
-        return await WriteFileAsync(result.Value, cancellationToken);
+        return await WriteFileAsync(result.Value, inline: false, cancellationToken);
     }
 
     private async Task<IActionResult> WriteFileAsync(
         OrderFileResponse file,
+        bool inline,
         CancellationToken cancellationToken)
     {
         Response.ContentType = file.ContentType;
-        Response.Headers.ContentDisposition = $"attachment; filename=\"{file.FileName}\"";
+        string disposition = inline ? "inline" : "attachment";
+        Response.Headers.ContentDisposition = $"{disposition}; filename=\"{file.FileName}\"";
         await file.WriteToAsync(Response.Body, cancellationToken);
         return new EmptyResult();
     }

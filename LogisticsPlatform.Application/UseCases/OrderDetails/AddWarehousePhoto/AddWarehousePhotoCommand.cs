@@ -6,5 +6,7 @@ namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddWarehousePhoto;
 
 public sealed record AddWarehousePhotoCommand(
     Guid OrderId,
-    string Url,
+    string FileName,
+    string ContentType,
+    byte[] Content,
     int? SortOrder) : ICommand<Result<OrderWarehousePhotoResponse>>;

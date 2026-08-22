@@ -68,7 +68,12 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
             .AsNoTracking()
             .Where(p => p.OrderId == orderId)
             .OrderBy(p => p.SortOrder)
-            .Select(p => new OrderWarehousePhotoData(p.Id, p.Url, p.SortOrder))
+            .Select(p => new OrderWarehousePhotoData(
+                p.Id,
+                p.OrderId,
+                p.FileName,
+                p.ContentType,
+                p.SortOrder))
             .ToListAsync(cancellationToken);
 
         List<OrderOperationData> operations = await dbContext.OrderOperations
@@ -308,9 +313,16 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         return true;
     }
 
+    public Task<int> CountWarehousePhotosAsync(Guid orderId, CancellationToken cancellationToken) =>
+        dbContext.OrderWarehousePhotos
+            .AsNoTracking()
+            .CountAsync(p => p.OrderId == orderId, cancellationToken);
+
     public async Task<OrderWarehousePhotoData> AddWarehousePhotoAsync(
         Guid orderId,
-        string url,
+        string fileName,
+        string contentType,
+        byte[] content,
         int sortOrder,
         CancellationToken cancellationToken)
     {
@@ -318,14 +330,37 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         {
             Id = Guid.NewGuid(),
             OrderId = orderId,
-            Url = url,
+            FileName = fileName,
+            ContentType = contentType,
+            Content = content,
             SortOrder = sortOrder
         };
 
         dbContext.OrderWarehousePhotos.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new OrderWarehousePhotoData(entity.Id, entity.Url, entity.SortOrder);
+        return new OrderWarehousePhotoData(
+            entity.Id,
+            entity.OrderId,
+            entity.FileName,
+            entity.ContentType,
+            entity.SortOrder);
+    }
+
+    public async Task<OrderWarehousePhotoContentData?> GetWarehousePhotoContentAsync(
+        Guid orderId,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderWarehousePhotos
+            .AsNoTracking()
+            .Where(p => p.Id == photoId && p.OrderId == orderId)
+            .Select(p => new OrderWarehousePhotoContentData(
+                p.Id,
+                p.FileName,
+                p.ContentType,
+                p.Content))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<bool> SoftDeleteWarehousePhotoAsync(
@@ -346,5 +381,43 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         entity.DeletedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<IReadOnlyList<OrderCommentData>> GetCommentsAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderComments
+            .AsNoTracking()
+            .Where(c => c.OrderId == orderId)
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => new OrderCommentData(c.Id, c.OrderId, c.Text, c.AuthorName, c.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<OrderCommentData> AddCommentAsync(
+        Guid orderId,
+        string text,
+        string? authorName,
+        CancellationToken cancellationToken)
+    {
+        var entity = new OrderComment
+        {
+            Id = Guid.NewGuid(),
+            OrderId = orderId,
+            Text = text,
+            AuthorName = authorName,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.OrderComments.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderCommentData(
+            entity.Id,
+            entity.OrderId,
+            entity.Text,
+            entity.AuthorName,
+            entity.CreatedAt);
     }
 }
