@@ -59,3 +59,10 @@ public sealed record OrdersListFilter(
     DateTimeOffset? DateTo,
     OrderStatus? Status,
     string? Q);
+
+public sealed record OrderCreatedData(
+    Guid Id,
+    string Number,
+    OrderType Type,
+    OrderStatus Status);
+

@@ -1,0 +1,11 @@
+using LogisticsPlatform.Domain.Enums;
+
+namespace LogisticsPlatform.Domain.DTO.Orders.List;
+
+public sealed record CreateOrderRequest(
+    OrderType Type,
+    Guid HubId,
+    DateTimeOffset? ScheduledAt,
+    string? DestinationCity,
+    string? DestinationRegion,
+    string? PrimaryReference);

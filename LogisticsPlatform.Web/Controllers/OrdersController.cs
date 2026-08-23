@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.UseCases.Orders.CreateOrder;
 using LogisticsPlatform.Application.UseCases.Orders.ExportOrders;
 using LogisticsPlatform.Application.UseCases.Orders.GetFilterOptions;
 using LogisticsPlatform.Application.UseCases.Orders.GetOrdersList;
@@ -6,6 +8,7 @@ using LogisticsPlatform.Application.UseCases.Orders.GetTabCounts;
 using LogisticsPlatform.Domain.DTO.Orders.Export;
 using LogisticsPlatform.Domain.DTO.Orders.List;
 using LogisticsPlatform.Domain.DTO.Orders.TabCounts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
@@ -13,6 +16,30 @@ namespace LogisticsPlatform.Controllers;
 [Route("api/orders")]
 public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> CreateOrder(
+        [FromBody] CreateOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        string? userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out Guid createdByUserId))
+            return Unauthorized();
+
+        var result = await Dispatcher.Send(
+            new CreateOrderCommand(
+                request.Type,
+                request.HubId,
+                createdByUserId,
+                request.ScheduledAt,
+                request.DestinationCity,
+                request.DestinationRegion,
+                request.PrimaryReference),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetOrders(
         [FromQuery] OrdersListRequest request,
@@ -79,7 +106,9 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
         OrdersExportFileResponse file = result.Value;
         Response.ContentType = file.ContentType;
         Response.Headers.ContentDisposition = $"attachment; filename=\"{file.FileName}\"";
+        
         await file.WriteToAsync(Response.Body, cancellationToken);
+        
         return new EmptyResult();
     }
 }

@@ -1,17 +1,26 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddComment;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperation;
+using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationComment;
+using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationPhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddSupply;
+using LogisticsPlatform.Application.UseCases.OrderDetails.AddTimelineEntry;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteOperation;
+using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteOperationPhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteSupply;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetBolPdf;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetComments;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetOperationComments;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetOperationPhoto;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetOperationPhotos;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetOrderDetails;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetQr;
+using LogisticsPlatform.Application.UseCases.OrderDetails.GetTimeline;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateOrder;
+using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateSupply;
 using LogisticsPlatform.Domain.DTO.Orders.Detail;
 using Microsoft.AspNetCore.Mvc;
 
@@ -99,6 +108,101 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [HttpGet("{id:guid}/operations/{operationId:guid}/comments")]
+    public async Task<IActionResult> GetOperationComments(
+        Guid id,
+        Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new GetOperationCommentsQuery(id, operationId),
+            cancellationToken);
+        return GetActionResult(result);
+    }
+
+    [HttpPost("{id:guid}/operations/{operationId:guid}/comments")]
+    public async Task<IActionResult> AddOperationComment(
+        Guid id,
+        Guid operationId,
+        [FromBody] AddOrderOperationCommentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new AddOperationCommentCommand(id, operationId, request.Text, request.AuthorName),
+            cancellationToken);
+        return GetActionResult(result);
+    }
+
+    [HttpGet("{id:guid}/operations/{operationId:guid}/photos")]
+    public async Task<IActionResult> GetOperationPhotos(
+        Guid id,
+        Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new GetOperationPhotosQuery(id, operationId),
+            cancellationToken);
+        return GetActionResult(result);
+    }
+
+    [HttpPost("{id:guid}/operations/{operationId:guid}/photos")]
+    [RequestSizeLimit(AddWarehousePhotoCommandValidator.MaxFileBytes)]
+    public async Task<IActionResult> AddOperationPhoto(
+        Guid id,
+        Guid operationId,
+        IFormFile file,
+        [FromForm] int? sortOrder,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("File is required.");
+
+        await using var memory = new MemoryStream();
+        await file.CopyToAsync(memory, cancellationToken);
+
+        var result = await Dispatcher.Send(
+            new AddOperationPhotoCommand(
+                id,
+                operationId,
+                file.FileName,
+                file.ContentType,
+                memory.ToArray(),
+                sortOrder),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
+    [HttpGet("{id:guid}/operations/{operationId:guid}/photos/{photoId:guid}")]
+    public async Task<IActionResult> GetOperationPhoto(
+        Guid id,
+        Guid operationId,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new GetOperationPhotoQuery(id, operationId, photoId),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return GetActionResult(result);
+
+        return await WriteFileAsync(result.Value, inline: true, cancellationToken);
+    }
+
+    [HttpDelete("{id:guid}/operations/{operationId:guid}/photos/{photoId:guid}")]
+    public async Task<IActionResult> DeleteOperationPhoto(
+        Guid id,
+        Guid operationId,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new DeleteOperationPhotoCommand(id, operationId, photoId),
+            cancellationToken);
+        return GetActionResult(result);
+    }
+
     [HttpPost("{id:guid}/supplies")]
     public async Task<IActionResult> AddSupply(
         Guid id,
@@ -108,6 +212,27 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         var result = await Dispatcher.Send(
             new AddOrderSupplyCommand(
                 id,
+                request.Sku,
+                request.Name,
+                request.Category,
+                request.Quantity,
+                request.UnitPriceCents),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
+    [HttpPatch("{id:guid}/supplies/{supplyId:guid}")]
+    public async Task<IActionResult> UpdateSupply(
+        Guid id,
+        Guid supplyId,
+        [FromBody] UpdateOrderSupplyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new UpdateOrderSupplyCommand(
+                id,
+                supplyId,
                 request.Sku,
                 request.Name,
                 request.Category,
@@ -201,6 +326,26 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
     {
         var result = await Dispatcher.Send(
             new AddOrderCommentCommand(id, request.Text, request.AuthorName),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
+    [HttpGet("{id:guid}/timeline")]
+    public async Task<IActionResult> GetTimeline(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(new GetOrderTimelineQuery(id), cancellationToken);
+        return GetActionResult(result);
+    }
+
+    [HttpPost("{id:guid}/timeline")]
+    public async Task<IActionResult> AddTimelineEntry(
+        Guid id,
+        [FromBody] AddOrderTimelineEntryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new AddOrderTimelineEntryCommand(id, request.Text, request.AuthorName),
             cancellationToken);
 
         return GetActionResult(result);

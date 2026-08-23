@@ -34,6 +34,16 @@ public interface IOrderDetailsRepository
         long unitPriceCents,
         CancellationToken cancellationToken);
 
+    Task<OrderSupplyData?> UpdateSupplyAsync(
+        Guid orderId,
+        Guid supplyId,
+        string sku,
+        string name,
+        string category,
+        int quantity,
+        long unitPriceCents,
+        CancellationToken cancellationToken);
+
     Task<bool> SoftDeleteSupplyAsync(Guid orderId, Guid supplyId, CancellationToken cancellationToken);
 
     Task<int> CountWarehousePhotosAsync(Guid orderId, CancellationToken cancellationToken);
@@ -64,5 +74,57 @@ public interface IOrderDetailsRepository
         Guid orderId,
         string text,
         string? authorName,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<OrderTimelineEntryData>> GetTimelineAsync(
+        Guid orderId,
+        CancellationToken cancellationToken);
+
+    Task<OrderTimelineEntryData> AddTimelineEntryAsync(
+        Guid orderId,
+        string kind,
+        string text,
+        string? authorName,
+        CancellationToken cancellationToken);
+
+    Task<bool> OperationExistsAsync(
+        Guid orderId,
+        Guid operationId,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<OrderOperationCommentData>> GetOperationCommentsAsync(
+        Guid operationId,
+        CancellationToken cancellationToken);
+
+    Task<OrderOperationCommentData> AddOperationCommentAsync(
+        Guid operationId,
+        string text,
+        string? authorName,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<OrderOperationPhotoData>> GetOperationPhotosAsync(
+        Guid orderId,
+        Guid operationId,
+        CancellationToken cancellationToken);
+
+    Task<OrderOperationPhotoData> AddOperationPhotoAsync(
+        Guid orderId,
+        Guid operationId,
+        string fileName,
+        string contentType,
+        byte[] content,
+        int sortOrder,
+        CancellationToken cancellationToken);
+
+    Task<OrderOperationPhotoContentData?> GetOperationPhotoContentAsync(
+        Guid orderId,
+        Guid operationId,
+        Guid photoId,
+        CancellationToken cancellationToken);
+
+    Task<bool> SoftDeleteOperationPhotoAsync(
+        Guid orderId,
+        Guid operationId,
+        Guid photoId,
         CancellationToken cancellationToken);
 }

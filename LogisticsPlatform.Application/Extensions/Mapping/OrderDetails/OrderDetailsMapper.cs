@@ -75,7 +75,9 @@ public static class OrderDetailsMapper
             data.Quantity,
             data.Unit,
             data.UnitLabel,
-            data.AppliedAt);
+            data.AppliedAt,
+            data.CommentCount,
+            data.PhotoCount);
 
     public static OrderSupplyResponse ToResponse(OrderSupplyData data) =>
         new(
@@ -95,8 +97,22 @@ public static class OrderDetailsMapper
             data.SortOrder,
             $"/api/orders/{data.OrderId}/warehouse-photos/{data.Id}");
 
+    public static OrderOperationPhotoResponse ToResponse(OrderOperationPhotoData data) =>
+        new(
+            data.Id,
+            data.FileName,
+            data.ContentType,
+            data.SortOrder,
+            $"/api/orders/{data.OrderId}/operations/{data.OperationId}/photos/{data.Id}");
+
     public static OrderCommentResponse ToResponse(OrderCommentData data) =>
         new(data.Id, data.Text, data.AuthorName, data.CreatedAt);
+
+    public static OrderCommentResponse ToResponse(OrderOperationCommentData data) =>
+        new(data.Id, data.Text, data.AuthorName, data.CreatedAt);
+
+    public static OrderTimelineEntryResponse ToResponse(OrderTimelineEntryData data) =>
+        new(data.Id, data.Kind, data.Text, data.AuthorName, data.CreatedAt);
 
     public static string FormatOperationType(OrderOperationType type) => type switch
     {

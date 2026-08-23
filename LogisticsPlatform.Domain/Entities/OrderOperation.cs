@@ -17,4 +17,7 @@ public class OrderOperation
 
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public ICollection<OrderOperationComment> Comments { get; set; } = new List<OrderOperationComment>();
+    public ICollection<OrderOperationPhoto> Photos { get; set; } = new List<OrderOperationPhoto>();
 }

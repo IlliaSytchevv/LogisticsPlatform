@@ -69,4 +69,5 @@ public class Order
     public ICollection<OrderSupply> Supplies { get; set; } = new List<OrderSupply>();
     public ICollection<OrderWarehousePhoto> WarehousePhotos { get; set; } = new List<OrderWarehousePhoto>();
     public ICollection<OrderComment> Comments { get; set; } = new List<OrderComment>();
+    public ICollection<OrderTimelineEntry> TimelineEntries { get; set; } = new List<OrderTimelineEntry>();
 }

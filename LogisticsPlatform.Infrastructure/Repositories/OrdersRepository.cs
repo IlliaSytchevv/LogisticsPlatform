@@ -157,4 +157,56 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
 
         return new OrdersFilterOptionsData(hubs);
     }
+
+    public Task<bool> HubExistsAsync(Guid hubId, CancellationToken cancellationToken) =>
+        dbContext.Hubs.AsNoTracking().AnyAsync(h => h.Id == hubId, cancellationToken);
+
+    public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken) =>
+        dbContext.Users.AsNoTracking().AnyAsync(u => u.Id == userId, cancellationToken);
+
+    public async Task<OrderCreatedData> CreateDraftAsync(
+        OrderType type,
+        Guid hubId,
+        Guid createdByUserId,
+        DateTimeOffset scheduledAt,
+        string destinationCity,
+        string destinationRegion,
+        string? primaryReference,
+        CancellationToken cancellationToken)
+    {
+        int draftCount = await dbContext.Orders
+            .IgnoreQueryFilters()
+            .CountAsync(o => o.Number.StartsWith("DRAFT-"), cancellationToken);
+
+        var entity = new Order
+        {
+            Id = Guid.NewGuid(),
+            Number = $"DRAFT-{draftCount + 1:D3}",
+            Type = type,
+            Status = OrderStatus.Draft,
+            HubId = hubId,
+            ScheduledAt = scheduledAt,
+            DestinationCity = destinationCity,
+            DestinationRegion = destinationRegion,
+            CreatedByUserId = createdByUserId,
+            PrimaryReference = primaryReference,
+            CreatedAt = DateTimeOffset.UtcNow,
+            NextActionLabel = "Continue editing",
+            TimelineEntries =
+            {
+                new OrderTimelineEntry
+                {
+                    Id = Guid.NewGuid(),
+                    Kind = "Status",
+                    Text = "DRAFT",
+                    CreatedAt = DateTimeOffset.UtcNow
+                }
+            }
+        };
+
+        dbContext.Orders.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderCreatedData(entity.Id, entity.Number, entity.Type, entity.Status);
+    }
 }

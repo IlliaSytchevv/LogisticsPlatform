@@ -14,9 +14,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OrderQuantityLine> OrderQuantityLines { get; set; }
     public DbSet<SubOrder> SubOrders { get; set; }
     public DbSet<OrderOperation> OrderOperations { get; set; }
+    public DbSet<OrderOperationComment> OrderOperationComments { get; set; }
+    public DbSet<OrderOperationPhoto> OrderOperationPhotos { get; set; }
     public DbSet<OrderSupply> OrderSupplies { get; set; }
     public DbSet<OrderWarehousePhoto> OrderWarehousePhotos { get; set; }
     public DbSet<OrderComment> OrderComments { get; set; }
+    public DbSet<OrderTimelineEntry> OrderTimelineEntries { get; set; }
     public DbSet<HubDock> HubDocks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)

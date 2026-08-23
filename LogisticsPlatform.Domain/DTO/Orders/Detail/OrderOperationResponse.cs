@@ -10,4 +10,6 @@ public sealed record OrderOperationResponse(
     int Quantity,
     PalletUnit Unit,
     string? UnitLabel,
-    DateTimeOffset AppliedAt);
+    DateTimeOffset AppliedAt,
+    int CommentCount,
+    int PhotoCount);

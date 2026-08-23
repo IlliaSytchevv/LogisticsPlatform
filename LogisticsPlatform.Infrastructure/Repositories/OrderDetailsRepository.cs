@@ -1,3 +1,4 @@
+using LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Domain.Entities;
@@ -88,7 +89,9 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
                 x.Quantity,
                 x.Unit,
                 x.UnitLabel,
-                x.AppliedAt))
+                x.AppliedAt,
+                x.Comments.Count(),
+                x.Photos.Count()))
             .ToListAsync(cancellationToken);
 
         List<OrderSupplyData> supplies = await dbContext.OrderSupplies
@@ -194,7 +197,22 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         if (patch.SetServicesCsv) order.ServicesCsv = patch.ServicesCsv;
         if (patch.SetQuantityUnitLabel) order.QuantityUnitLabel = patch.QuantityUnitLabel;
         if (patch.SetDockStatusLabel) order.DockStatusLabel = patch.DockStatusLabel;
-        if (patch.Status.HasValue) order.Status = patch.Status.Value;
+
+        if (patch.Status.HasValue && patch.Status.Value != order.Status)
+        {
+            OrderStatus previous = order.Status;
+            order.Status = patch.Status.Value;
+            dbContext.OrderTimelineEntries.Add(new OrderTimelineEntry
+            {
+                Id = Guid.NewGuid(),
+                OrderId = order.Id,
+                Kind = "Status",
+                Text =
+                    $"{OrderDetailsMapper.FormatStatus(previous)} → {OrderDetailsMapper.FormatStatus(order.Status)}",
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
         if (patch.HasAlert.HasValue) order.HasAlert = patch.HasAlert.Value;
         if (patch.SetAlertReason) order.AlertReason = patch.AlertReason;
 
@@ -235,7 +253,9 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
             entity.Quantity,
             entity.Unit,
             entity.UnitLabel,
-            entity.AppliedAt);
+            entity.AppliedAt,
+            CommentCount: 0,
+            PhotoCount: 0);
     }
 
     public async Task<bool> SoftDeleteOperationAsync(
@@ -280,6 +300,42 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         };
 
         dbContext.OrderSupplies.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderSupplyData(
+            entity.Id,
+            entity.OrderId,
+            entity.Sku,
+            entity.Name,
+            entity.Category,
+            entity.Quantity,
+            entity.UnitPriceCents,
+            entity.LineTotalCents);
+    }
+
+    public async Task<OrderSupplyData?> UpdateSupplyAsync(
+        Guid orderId,
+        Guid supplyId,
+        string sku,
+        string name,
+        string category,
+        int quantity,
+        long unitPriceCents,
+        CancellationToken cancellationToken)
+    {
+        OrderSupply? entity = await dbContext.OrderSupplies
+            .FirstOrDefaultAsync(x => x.Id == supplyId && x.OrderId == orderId, cancellationToken);
+
+        if (entity is null)
+            return null;
+
+        entity.Sku = sku;
+        entity.Name = name;
+        entity.Category = category;
+        entity.Quantity = quantity;
+        entity.UnitPriceCents = unitPriceCents;
+        entity.LineTotalCents = quantity * unitPriceCents;
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new OrderSupplyData(
@@ -419,5 +475,195 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
             entity.Text,
             entity.AuthorName,
             entity.CreatedAt);
+    }
+
+    public async Task<IReadOnlyList<OrderTimelineEntryData>> GetTimelineAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderTimelineEntries
+            .AsNoTracking()
+            .Where(e => e.OrderId == orderId)
+            .OrderByDescending(e => e.CreatedAt)
+            .Select(e => new OrderTimelineEntryData(
+                e.Id,
+                e.OrderId,
+                e.Kind,
+                e.Text,
+                e.AuthorName,
+                e.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<OrderTimelineEntryData> AddTimelineEntryAsync(
+        Guid orderId,
+        string kind,
+        string text,
+        string? authorName,
+        CancellationToken cancellationToken)
+    {
+        var entity = new OrderTimelineEntry
+        {
+            Id = Guid.NewGuid(),
+            OrderId = orderId,
+            Kind = kind,
+            Text = text,
+            AuthorName = authorName,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.OrderTimelineEntries.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderTimelineEntryData(
+            entity.Id,
+            entity.OrderId,
+            entity.Kind,
+            entity.Text,
+            entity.AuthorName,
+            entity.CreatedAt);
+    }
+
+    public Task<bool> OperationExistsAsync(
+        Guid orderId,
+        Guid operationId,
+        CancellationToken cancellationToken) =>
+        dbContext.OrderOperations
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == operationId && x.OrderId == orderId, cancellationToken);
+
+    public async Task<IReadOnlyList<OrderOperationCommentData>> GetOperationCommentsAsync(
+        Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderOperationComments
+            .AsNoTracking()
+            .Where(c => c.OperationId == operationId)
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => new OrderOperationCommentData(
+                c.Id,
+                c.OperationId,
+                c.Text,
+                c.AuthorName,
+                c.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<OrderOperationCommentData> AddOperationCommentAsync(
+        Guid operationId,
+        string text,
+        string? authorName,
+        CancellationToken cancellationToken)
+    {
+        var entity = new OrderOperationComment
+        {
+            Id = Guid.NewGuid(),
+            OperationId = operationId,
+            Text = text,
+            AuthorName = authorName,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.OrderOperationComments.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderOperationCommentData(
+            entity.Id,
+            entity.OperationId,
+            entity.Text,
+            entity.AuthorName,
+            entity.CreatedAt);
+    }
+
+    public async Task<IReadOnlyList<OrderOperationPhotoData>> GetOperationPhotosAsync(
+        Guid orderId,
+        Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderOperationPhotos
+            .AsNoTracking()
+            .Where(p => p.OperationId == operationId && p.Operation.OrderId == orderId)
+            .OrderBy(p => p.SortOrder)
+            .Select(p => new OrderOperationPhotoData(
+                p.Id,
+                orderId,
+                p.OperationId,
+                p.FileName,
+                p.ContentType,
+                p.SortOrder))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<OrderOperationPhotoData> AddOperationPhotoAsync(
+        Guid orderId,
+        Guid operationId,
+        string fileName,
+        string contentType,
+        byte[] content,
+        int sortOrder,
+        CancellationToken cancellationToken)
+    {
+        var entity = new OrderOperationPhoto
+        {
+            Id = Guid.NewGuid(),
+            OperationId = operationId,
+            FileName = fileName,
+            ContentType = contentType,
+            Content = content,
+            SortOrder = sortOrder
+        };
+
+        dbContext.OrderOperationPhotos.Add(entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderOperationPhotoData(
+            entity.Id,
+            orderId,
+            entity.OperationId,
+            entity.FileName,
+            entity.ContentType,
+            entity.SortOrder);
+    }
+
+    public async Task<OrderOperationPhotoContentData?> GetOperationPhotoContentAsync(
+        Guid orderId,
+        Guid operationId,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.OrderOperationPhotos
+            .AsNoTracking()
+            .Where(p => p.Id == photoId && p.OperationId == operationId && p.Operation.OrderId == orderId)
+            .Select(p => new OrderOperationPhotoContentData(
+                p.Id,
+                p.FileName,
+                p.ContentType,
+                p.Content))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> SoftDeleteOperationPhotoAsync(
+        Guid orderId,
+        Guid operationId,
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        OrderOperationPhoto? entity = await dbContext.OrderOperationPhotos
+            .IgnoreQueryFilters()
+            .Include(p => p.Operation)
+            .FirstOrDefaultAsync(
+                p => p.Id == photoId
+                     && p.OperationId == operationId
+                     && p.Operation.OrderId == orderId
+                     && !p.IsDeleted,
+                cancellationToken);
+
+        if (entity is null)
+            return false;
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

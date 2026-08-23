@@ -57,7 +57,30 @@ public sealed record OrderOperationData(
     int Quantity,
     PalletUnit Unit,
     string? UnitLabel,
-    DateTimeOffset AppliedAt);
+    DateTimeOffset AppliedAt,
+    int CommentCount,
+    int PhotoCount);
+
+public sealed record OrderOperationCommentData(
+    Guid Id,
+    Guid OperationId,
+    string Text,
+    string? AuthorName,
+    DateTimeOffset CreatedAt);
+
+public sealed record OrderOperationPhotoData(
+    Guid Id,
+    Guid OrderId,
+    Guid OperationId,
+    string FileName,
+    string ContentType,
+    int SortOrder);
+
+public sealed record OrderOperationPhotoContentData(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    byte[] Content);
 
 public sealed record OrderSupplyData(
     Guid Id,
@@ -85,6 +108,14 @@ public sealed record OrderWarehousePhotoContentData(
 public sealed record OrderCommentData(
     Guid Id,
     Guid OrderId,
+    string Text,
+    string? AuthorName,
+    DateTimeOffset CreatedAt);
+
+public sealed record OrderTimelineEntryData(
+    Guid Id,
+    Guid OrderId,
+    string Kind,
     string Text,
     string? AuthorName,
     DateTimeOffset CreatedAt);
