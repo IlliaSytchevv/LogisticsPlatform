@@ -20,29 +20,40 @@ internal static class OrdersQueryFilter
         if (filter.Status.HasValue)
             query = query.Where(o => o.Status == filter.Status.Value);
 
-        if (!string.IsNullOrWhiteSpace(filter.Q))
+        if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            string q = filter.Q.Trim();
+            string search = filter.Search.Trim();
             query = query.Where(o =>
-                o.Number.Contains(q)
-                || o.Hub.Name.Contains(q)
-                || (o.Carrier != null && o.Carrier.Name.Contains(q))
-                || o.CreatedByUser.DisplayName.Contains(q)
-                || o.SubOrders.Any(s => s.Reference.Contains(q) || s.Number.Contains(q)));
+                o.Number.Contains(search)
+                || o.Hub.Name.Contains(search)
+                || (o.Carrier != null && o.Carrier.Name.Contains(search))
+                || o.CreatedByUser.DisplayName.Contains(search)
+                || o.SubOrders.Any(s => s.Reference.Contains(search) || s.Number.Contains(search)));
         }
 
         if (filter.Tab.HasValue)
-        {
-            query = filter.Tab.Value switch
-            {
-                OrderListTab.CrossDock => query.Where(o => o.Type == OrderType.CrossDock),
-                OrderListTab.Consolidation => query.Where(o => o.Type == OrderType.Consolidation),
-                OrderListTab.Alerts => query.Where(o => o.HasAlert || o.Status == OrderStatus.Alert),
-                OrderListTab.Drafts => query.Where(o => o.Status == OrderStatus.Draft),
-                _ => query
-            };
-        }
+            query = ApplyTab(query, filter.Tab.Value);
 
         return query;
     }
+
+    private static IQueryable<Order> ApplyTab(IQueryable<Order> query, OrderListTab tab) =>
+        tab switch
+        {
+            OrderListTab.Drafts => query.Where(o => o.Status == OrderStatus.Draft),
+            OrderListTab.Alerts => query.Where(o =>
+                o.Status != OrderStatus.Draft &&
+                (o.HasAlert || o.Status == OrderStatus.Alert)),
+            OrderListTab.CrossDock => query.Where(o =>
+                o.Type == OrderType.CrossDock &&
+                o.Status != OrderStatus.Draft &&
+                !o.HasAlert &&
+                o.Status != OrderStatus.Alert),
+            OrderListTab.Consolidation => query.Where(o =>
+                o.Type == OrderType.Consolidation &&
+                o.Status != OrderStatus.Draft &&
+                !o.HasAlert &&
+                o.Status != OrderStatus.Alert),
+            _ => query
+        };
 }

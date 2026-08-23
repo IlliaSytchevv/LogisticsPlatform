@@ -13,10 +13,11 @@ public sealed class OrderBolPdfService : IOrderBolPdfService
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public Task WriteAsync(OrderDocumentData order, Stream output, CancellationToken cancellationToken)
+    public async Task WriteAsync(OrderDocumentData order, Stream output, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        using var buffer = new MemoryStream();
         Document.Create(container =>
         {
             container.Page(page =>
@@ -39,8 +40,9 @@ public sealed class OrderBolPdfService : IOrderBolPdfService
                 });
                 page.Footer().AlignCenter().Text("FREITTY BOL").FontSize(10).FontColor(Colors.Grey.Darken1);
             });
-        }).GeneratePdf(output);
+        }).GeneratePdf(buffer);
 
-        return Task.CompletedTask;
+        buffer.Position = 0;
+        await buffer.CopyToAsync(output, cancellationToken);
     }
 }

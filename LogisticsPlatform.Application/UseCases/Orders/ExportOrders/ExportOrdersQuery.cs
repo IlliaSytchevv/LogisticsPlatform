@@ -11,4 +11,4 @@ public sealed record ExportOrdersQuery(
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     OrderStatus? Status,
-    string? Q) : IQuery<Result<OrdersExportFileResponse>>;
+    string? Search) : IQuery<Result<OrdersExportFileResponse>>;

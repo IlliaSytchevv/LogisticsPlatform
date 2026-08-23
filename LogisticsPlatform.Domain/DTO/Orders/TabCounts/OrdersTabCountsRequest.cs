@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Domain.DTO.Orders.TabCounts;
@@ -7,4 +8,6 @@ public sealed record OrdersTabCountsRequest(
     DateTimeOffset? DateFrom = null,
     DateTimeOffset? DateTo = null,
     OrderStatus? Status = null,
-    string? Q = null);
+    [property: Description(
+        "Free-text search by order number, hub name, carrier, creator, or sub-order reference/number. Examples: Markham, FR001693, TForce, REF-1103")]
+    string? Search = null);

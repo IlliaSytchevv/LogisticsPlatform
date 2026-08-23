@@ -114,7 +114,7 @@ public static class OrderDetailsMapper
     public static OrderTimelineEntryResponse ToResponse(OrderTimelineEntryData data) =>
         new(data.Id, data.Kind, data.Text, data.AuthorName, data.CreatedAt);
 
-    public static string FormatOperationType(OrderOperationType type) => type switch
+    private static string FormatOperationType(OrderOperationType type) => type switch
     {
         OrderOperationType.Unloading => "Unloading",
         OrderOperationType.Disposal => "DISPOSAL",
@@ -123,7 +123,7 @@ public static class OrderDetailsMapper
         _ => type.ToString()
     };
 
-    public static string FormatType(OrderType type) => type switch
+    private static string FormatType(OrderType type) => type switch
     {
         OrderType.Consolidation => "CONSOLIDATION",
         OrderType.CrossDock => "CROSS-DOCK",

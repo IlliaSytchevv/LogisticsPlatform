@@ -10,6 +10,7 @@ using LogisticsPlatform.Domain.DTO.Orders.List;
 using LogisticsPlatform.Domain.DTO.Orders.TabCounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 namespace LogisticsPlatform.Controllers;
 
@@ -52,7 +53,7 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
                 request.DateFrom,
                 request.DateTo,
                 request.Status,
-                request.Q,
+                request.Search,
                 request.Page,
                 request.PageSize),
             cancellationToken);
@@ -71,7 +72,7 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
                 request.DateFrom,
                 request.DateTo,
                 request.Status,
-                request.Q),
+                request.Search),
             cancellationToken);
 
         return GetActionResult(result);
@@ -97,7 +98,7 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
                 request.DateFrom,
                 request.DateTo,
                 request.Status,
-                request.Q),
+                request.Search),
             cancellationToken);
 
         if (!result.IsSuccess)
@@ -105,8 +106,11 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
 
         OrdersExportFileResponse file = result.Value;
         Response.ContentType = file.ContentType;
-        Response.Headers.ContentDisposition = $"attachment; filename=\"{file.FileName}\"";
-        
+
+        var contentDisposition = new ContentDispositionHeaderValue("attachment");
+        contentDisposition.SetHttpFileName(file.FileName);
+        Response.Headers.ContentDisposition = contentDisposition.ToString();
+
         await file.WriteToAsync(Response.Body, cancellationToken);
         
         return new EmptyResult();

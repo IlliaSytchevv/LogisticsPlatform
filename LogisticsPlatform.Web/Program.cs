@@ -1,10 +1,14 @@
 using LogisticsPlatform.Infrastructure;
+using LogisticsPlatform.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.ParameterFilter<DescriptionParameterFilter>();
+});
 
 builder.Services.AddCors(options =>
 {

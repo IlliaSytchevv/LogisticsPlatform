@@ -132,9 +132,19 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
             .Select(g => new
             {
                 All = g.Count(),
-                CrossDock = g.Count(o => o.Type == OrderType.CrossDock),
-                Consolidation = g.Count(o => o.Type == OrderType.Consolidation),
-                Alerts = g.Count(o => o.HasAlert || o.Status == OrderStatus.Alert),
+                CrossDock = g.Count(o =>
+                    o.Type == OrderType.CrossDock &&
+                    o.Status != OrderStatus.Draft &&
+                    !o.HasAlert &&
+                    o.Status != OrderStatus.Alert),
+                Consolidation = g.Count(o =>
+                    o.Type == OrderType.Consolidation &&
+                    o.Status != OrderStatus.Draft &&
+                    !o.HasAlert &&
+                    o.Status != OrderStatus.Alert),
+                Alerts = g.Count(o =>
+                    o.Status != OrderStatus.Draft &&
+                    (o.HasAlert || o.Status == OrderStatus.Alert)),
                 Drafts = g.Count(o => o.Status == OrderStatus.Draft)
             })
             .SingleOrDefaultAsync(cancellationToken);

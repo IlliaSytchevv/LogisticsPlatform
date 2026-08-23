@@ -1,4 +1,5 @@
 using System.Text;
+using LogisticsPlatform.Application;
 using LogisticsPlatform.Application.Interfaces.FileExport;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Interfaces.Services;
@@ -25,6 +26,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddApplication();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
         services.AddDbContext<AppDbContext>(options =>

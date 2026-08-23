@@ -11,6 +11,6 @@ public sealed record GetOrdersListQuery(
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     OrderStatus? Status,
-    string? Q,
+    string? Search,
     int Page,
     int PageSize) : IQuery<Result<OrdersListResponse>>;

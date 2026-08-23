@@ -20,7 +20,7 @@ public sealed class GetOrdersListQueryHandler(IOrdersRepository ordersRepository
             query.DateFrom,
             query.DateTo,
             query.Status,
-            query.Q);
+            query.Search);
 
         OrdersListData data = await ordersRepository.GetOrdersAsync(
             filter,

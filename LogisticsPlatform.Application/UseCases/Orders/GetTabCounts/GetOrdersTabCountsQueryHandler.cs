@@ -20,7 +20,7 @@ public sealed class GetOrdersTabCountsQueryHandler(IOrdersRepository ordersRepos
             query.DateFrom,
             query.DateTo,
             query.Status,
-            query.Q);
+            query.Search);
 
         OrdersTabCountsData data = await ordersRepository.GetTabCountsAsync(filter, cancellationToken);
         

@@ -41,7 +41,7 @@ public sealed class ExportOrdersQueryHandler(
             query.DateFrom,
             query.DateTo,
             query.Status,
-            query.Q);
+            query.Search);
 
         string fileName = $"orders-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
 

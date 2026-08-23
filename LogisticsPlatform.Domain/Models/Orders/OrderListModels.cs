@@ -58,7 +58,7 @@ public sealed record OrdersListFilter(
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     OrderStatus? Status,
-    string? Q);
+    string? Search);
 
 public sealed record OrderCreatedData(
     Guid Id,

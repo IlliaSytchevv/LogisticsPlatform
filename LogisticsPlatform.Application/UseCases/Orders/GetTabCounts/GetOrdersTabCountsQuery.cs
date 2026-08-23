@@ -10,4 +10,4 @@ public sealed record GetOrdersTabCountsQuery(
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     OrderStatus? Status,
-    string? Q) : IQuery<Result<OrdersTabCountsResponse>>;
+    string? Search) : IQuery<Result<OrdersTabCountsResponse>>;
