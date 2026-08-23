@@ -42,11 +42,11 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
                 o.DestinationCity,
                 o.DestinationRegion,
                 o.DestinationNote,
-                o.NextActionLabel,
-                o.NextActionKind,
-                o.NextActionDueAt,
-                o.NextActionAmountCents,
-                o.NextActionDocumentNumber
+                o.NextAction.NextActionLabel,
+                o.NextAction.NextActionKind,
+                o.NextAction.NextActionDueAt,
+                o.NextAction.NextActionAmountCents,
+                o.NextAction.NextActionDocumentNumber
             })
             .ToListAsync(cancellationToken);
 
@@ -189,9 +189,9 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
             DestinationCity = destinationCity,
             DestinationRegion = destinationRegion,
             CreatedByUserId = createdByUserId,
-            PrimaryReference = primaryReference,
+            Cabinet = new OrderCabinetDetail { PrimaryReference = primaryReference },
             CreatedAt = DateTimeOffset.UtcNow,
-            NextActionLabel = "Continue editing",
+            NextAction = new OrderNextAction { NextActionLabel = "Continue editing" },
             TimelineEntries =
             {
                 new OrderTimelineEntry

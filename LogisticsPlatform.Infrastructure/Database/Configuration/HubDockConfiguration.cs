@@ -2,7 +2,7 @@ using LogisticsPlatform.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace LogisticsPlatform.Infrastructure.Database;
+namespace LogisticsPlatform.Infrastructure.Database.Configuration;
 
 public sealed class HubDockConfiguration : IEntityTypeConfiguration<HubDock>
 {

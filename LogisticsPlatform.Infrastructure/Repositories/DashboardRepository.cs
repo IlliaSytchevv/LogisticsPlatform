@@ -34,9 +34,9 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
                     o.Status == OrderStatus.Completed
                     && o.CompletedAt >= previous30Days
                     && o.CompletedAt < last30Days),
-                AwaitingClientAction = g.Count(o => o.AwaitingClientAction),
+                AwaitingClientAction = g.Count(o => o.NextAction.AwaitingClientAction),
                 Alerts = g.Count(o => o.HasAlert),
-                NeedAttention = g.Count(o => o.AwaitingClientAction || o.HasAlert)
+                NeedAttention = g.Count(o => o.NextAction.AwaitingClientAction || o.HasAlert)
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -87,11 +87,11 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
                 o.DestinationRegion,
                 o.DestinationNote,
                 o.TrailersConsolidated,
-                o.NextActionLabel,
-                o.NextActionKind,
-                o.NextActionDueAt,
-                o.NextActionAmountCents,
-                o.NextActionDocumentNumber
+                o.NextAction.NextActionLabel,
+                o.NextAction.NextActionKind,
+                o.NextAction.NextActionDueAt,
+                o.NextAction.NextActionAmountCents,
+                o.NextAction.NextActionDocumentNumber
             })
             .ToListAsync(cancellationToken);
 

@@ -41,7 +41,7 @@ public sealed class OrdersExportBatchReader(AppDbContext dbContext) : IOrdersExp
                     CreatedByRole = o.CreatedByUser.Role,
                     o.DeclaredQty,
                     o.ActualQty,
-                    o.NextActionLabel,
+                    o.NextAction.NextActionLabel,
                     o.HasAlert,
                     o.AlertReason
                 })

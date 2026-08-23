@@ -215,9 +215,12 @@ public static class SeedData
             CreatedByUserId = User1Id,
             CarrierId = CarrierDriver5Id,
             TrailersConsolidated = 2,
-            NextActionKind = NextActionKind.Loading,
-            NextActionLabel = "Loading",
-            NextActionDueAt = now.AddHours(2).AddMinutes(14),
+            NextAction = new OrderNextAction
+            {
+                NextActionKind = NextActionKind.Loading,
+                NextActionLabel = "Loading",
+                NextActionDueAt = now.AddHours(2).AddMinutes(14),
+            },
             CreatedAt = now.AddDays(-10),
             QuantityLines =
             {
@@ -245,9 +248,12 @@ public static class SeedData
             DestinationNote = "via External PDF",
             CreatedByUserId = User2Id,
             CarrierId = CarrierSchneiderId,
-            AwaitingClientAction = true,
-            NextActionKind = NextActionKind.WaitingForTruck,
-            NextActionLabel = "Waiting for truck",
+            NextAction = new OrderNextAction
+            {
+                AwaitingClientAction = true,
+                NextActionKind = NextActionKind.WaitingForTruck,
+                NextActionLabel = "Waiting for truck",
+            },
             CreatedAt = now.AddDays(-3),
             QuantityLines =
             {
@@ -274,11 +280,14 @@ public static class SeedData
             DeclaredQty = 20,
             ActualQty = 18,
             TrailersConsolidated = 1,
-            AwaitingClientAction = true,
             HasAlert = true,
             AlertReason = "photo_missing",
-            NextActionKind = NextActionKind.UploadPhoto,
-            NextActionLabel = "Upload photo",
+            NextAction = new OrderNextAction
+            {
+                AwaitingClientAction = true,
+                NextActionKind = NextActionKind.UploadPhoto,
+                NextActionLabel = "Upload photo",
+            },
             CreatedAt = now.AddDays(-8),
             SubOrders =
             {
@@ -308,10 +317,13 @@ public static class SeedData
             DestinationNote = "Order with photos",
             CreatedByUserId = User1Id,
             CarrierId = CarrierSelfId,
-            NextActionKind = NextActionKind.Paid,
-            NextActionLabel = "Paid",
-            NextActionAmountCents = 100,
-            NextActionDocumentNumber = "D01812",
+            NextAction = new OrderNextAction
+            {
+                NextActionKind = NextActionKind.Paid,
+                NextActionLabel = "Paid",
+                NextActionAmountCents = 100,
+                NextActionDocumentNumber = "D01812",
+            },
             CreatedAt = now.AddDays(-20),
             CompletedAt = now.AddDays(-5),
             SpendCents = 100,
@@ -342,8 +354,11 @@ public static class SeedData
                 CreatedByUserId = User1Id,
                 CarrierId = CarrierTForceId,
                 CreatedAt = now.AddDays(-i),
-                NextActionLabel = "Loading",
-                NextActionKind = NextActionKind.Loading,
+                NextAction = new OrderNextAction
+                {
+                    NextActionLabel = "Loading",
+                    NextActionKind = NextActionKind.Loading,
+                },
                 QuantityLines =
                 {
                     new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 5 + i }
@@ -374,9 +389,12 @@ public static class SeedData
             DestinationRegion = "ON",
             CreatedByUserId = User2Id,
             CarrierId = CarrierSchneiderId,
-            AwaitingClientAction = true,
             CreatedAt = now.AddDays(-1),
-            NextActionLabel = "Confirm details",
+            NextAction = new OrderNextAction
+            {
+                AwaitingClientAction = true,
+                NextActionLabel = "Confirm details",
+            },
             QuantityLines =
             {
                 new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 8 }
@@ -415,9 +433,12 @@ public static class SeedData
                     CreatedAt = completedAt.AddDays(-3),
                     CompletedAt = completedAt,
                     SpendCents = w == 6 ? 100 : 0,
-                    NextActionKind = NextActionKind.Paid,
-                    NextActionLabel = "Paid",
-                    NextActionAmountCents = w == 6 ? 100 : 0,
+                    NextAction = new OrderNextAction
+                    {
+                        NextActionKind = NextActionKind.Paid,
+                        NextActionLabel = "Paid",
+                        NextActionAmountCents = w == 6 ? 100 : 0,
+                    },
                     QuantityLines =
                     {
                         new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 4 }

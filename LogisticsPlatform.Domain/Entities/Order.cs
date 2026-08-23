@@ -30,38 +30,16 @@ public class Order
 
     public int? TrailersConsolidated { get; set; }
 
-    public bool AwaitingClientAction { get; set; }
     public bool HasAlert { get; set; }
     public string? AlertReason { get; set; }
-
-    public NextActionKind? NextActionKind { get; set; }
-    public string? NextActionLabel { get; set; }
-    public DateTimeOffset? NextActionDueAt { get; set; }
-    public long? NextActionAmountCents { get; set; }
-    public string? NextActionDocumentNumber { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public long SpendCents { get; set; }
 
-    // Detail / cabinet fields
-    public string? CustomerName { get; set; }
-    public string? PrimaryReference { get; set; }
-    public string? Phone { get; set; }
-    public string? TrailerType { get; set; }
-    public string? TruckNumber { get; set; }
-    public string? TrailerNumber { get; set; }
-    public string? DockCode { get; set; }
-    public string? DockBay { get; set; }
-    public DateTimeOffset? DockAssignedAt { get; set; }
-    public Guid? AssignedToUserId { get; set; }
-    public ApplicationUser? AssignedToUser { get; set; }
-    public string? WarehouseNote { get; set; }
-    public string? StockStatusLabel { get; set; }
-    public string? LoadingStatusLabel { get; set; }
-    public string? ServicesCsv { get; set; }
-    public string? QuantityUnitLabel { get; set; }
-    public string? DockStatusLabel { get; set; }
+    public OrderNextAction NextAction { get; set; } = new();
+    public OrderCabinetDetail Cabinet { get; set; } = new();
+    public OrderDockAssignment Dock { get; set; } = new();
 
     public ICollection<OrderQuantityLine> QuantityLines { get; set; } = new List<OrderQuantityLine>();
     public ICollection<SubOrder> SubOrders { get; set; } = new List<SubOrder>();

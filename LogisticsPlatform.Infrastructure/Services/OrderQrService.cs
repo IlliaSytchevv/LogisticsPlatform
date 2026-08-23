@@ -10,11 +10,14 @@ public sealed class OrderQrService : IOrderQrService
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        string payload = $"FREITTY:{order.Number}:{order.Id}";
+        var payload = $"FREITTY:{order.Number}:{order.Id}";
+        
         using var generator = new QRCodeGenerator();
         using QRCodeData data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q);
+        
         var qr = new PngByteQRCode(data);
-        byte[] bytes = qr.GetGraphic(8);
+        var bytes = qr.GetGraphic(8);
+        
         return output.WriteAsync(bytes, cancellationToken).AsTask();
     }
 }
