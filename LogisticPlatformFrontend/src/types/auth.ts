@@ -1,21 +1,10 @@
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public body?: unknown,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
 export type LoginRequest = {
   username: string;
   password: string;
 };
 
 export type LoginResponse = {
-  token: string;
+  jwtToken: string;
 };
 
 export type RegisterRequest = {
@@ -30,3 +19,14 @@ export type AuthUser = {
   name: string;
   roles: string[];
 };
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public body?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}

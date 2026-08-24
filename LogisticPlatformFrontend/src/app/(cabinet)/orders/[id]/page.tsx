@@ -1,7 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ApiError } from "@/types/auth";
+import { mediaUrl, ordersService } from "@/api/services/orders.service";
+import {
+  orderCommentsOptions,
+  orderDetailOptions,
+} from "../_hooks/orders-queries";
+import { CommentsPanel } from "./_components/comments-panel";
+import { EditOrderModal } from "./_components/edit-order-modal";
+import { OperationsTable } from "./_components/operations-table";
+import { SuppliesTable } from "./_components/supplies-table";
+import { TimelinePanel } from "./_components/timeline-panel";
+import { WarehousePhotosPanel } from "./_components/warehouse-photos-panel";
+import {
+  deltaLabel,
+  formatDetailDate,
+  formatDetailDateTime,
+  initials,
+} from "./_lib/format";
+
+const STATUS_FLOW: { value: number; label: string }[] = [
+  { value: 1, label: "Draft" },
+  { value: 2, label: "New" },
+  { value: 3, label: "In Progress" },
+  { value: 5, label: "Completed" },
+  { value: 6, label: "Closed" },
+];
 
 export default function OrderDetailPage({
   params,
@@ -9,31 +36,88 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const orderNo = id?.startsWith("FR") ? id : "FR001383";
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [docBusy, setDocBusy] = useState<"bol" | "qr" | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+
+  const {
+    data: order,
+    isLoading,
+    isError,
+    error,
+  } = useQuery(orderDetailOptions(id));
+
+  const { data: comments = [] } = useQuery({
+    ...orderCommentsOptions(id),
+    enabled: Boolean(id),
+  });
+
+  if (isLoading) {
+    return <div style={{ padding: 24, color: "#6B7280" }}>Loading order…</div>;
+  }
+
+  if (isError || !order) {
+    const status = error instanceof ApiError ? error.status : undefined;
+    return (
+      <div style={{ padding: 24 }}>
+        <div style={{ color: "#DC2626", fontWeight: 600, marginBottom: 8 }}>
+          {status === 404 ? "Order not found" : "Failed to load order"}
+        </div>
+        <div style={{ color: "#6B7280", fontSize: 13, marginBottom: 12 }}>
+          {error instanceof Error ? error.message : "Unknown error"}
+        </div>
+        <Link href="/orders" className="btn btn-secondary">
+          ← Back to orders
+        </Link>
+      </div>
+    );
+  }
+
+  const dock = order.assignedDock;
+  const photos = order.warehouseNote.photos ?? [];
+  const hubLabel = order.hubRegionCode
+    ? `${order.hubName} (${order.hubRegionCode})`
+    : order.hubName;
+  const qtyDelta = order.qtyDelta;
+  const hasQtyDelta = qtyDelta !== 0;
+
+  const downloadBol = async () => {
+    setDocError(null);
+    setDocBusy("bol");
+    try {
+      await ordersService.downloadBolPdf(order.id);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : "BOL download failed");
+    } finally {
+      setDocBusy(null);
+    }
+  };
+
+  const downloadQr = async () => {
+    setDocError(null);
+    setDocBusy("qr");
+    try {
+      await ordersService.downloadQr(order.id);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : "QR download failed");
+    } finally {
+      setDocBusy(null);
+    }
+  };
 
   return (
     <>
       <div className="fc-crumbs">
-        <Link href="/orders">Orders</Link> <span>›</span> {orderNo}
+        <Link href="/orders">Orders</Link> <span>›</span> {order.number}
       </div>
 
       <div className="xd-hub-header">
         <div className="xd-hub-logo">F</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "#1F2A3A" }}>Cross-Dock management</div>
-        <div
-          style={{
-            marginLeft: "auto",
-            width: 36,
-            height: 36,
-            background: "#F3F4F6",
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#6B7280",
-          }}
-        >
-          ☰
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#1F2A3A" }}>
+          {order.type === 1 ? "Cross-Dock management" : "Consolidation management"}
         </div>
       </div>
 
@@ -43,160 +127,240 @@ export default function OrderDetailPage({
         </Link>
         <span style={{ color: "#2563EB", fontSize: 20 }}>📦</span>
         <span style={{ fontSize: 13, color: "#6B7280" }}>Order#:</span>
-        <strong style={{ fontSize: 15, color: "#1F2A3A" }}>{orderNo}</strong>
+        <strong style={{ fontSize: 15, color: "#1F2A3A" }}>{order.number}</strong>
         <span style={{ color: "#16A34A", fontSize: 16, fontWeight: 700 }}>$</span>
         <span style={{ color: "#6B7280", fontSize: 16 }}>🚚</span>
         <span className="badge" style={{ background: "#DBEAFE", color: "#1E40AF" }}>
-          Cross-Dock
+          {order.typeLabel}
         </span>
-        <span className="badge" style={{ background: "#D1FAE5", color: "#065F46" }}>
-          ● On Stock
-        </span>
-        <span className="badge badge-prog">Loading in progress</span>
-        <span className="ref-n-inline">
-          <span className="lbl">Ref N:</span>
-          <span className="val">REF-1012</span>
-        </span>
-        <span className="xd-by-chip">
-          <span style={{ color: "#9CA3AF", fontWeight: 500 }}>by</span>
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: "#0EA5E9",
-              color: "#fff",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 9,
-              fontWeight: 800,
-            }}
-          >
-            MK
+        {order.stockStatusLabel && (
+          <span className="badge" style={{ background: "#D1FAE5", color: "#065F46" }}>
+            ● {order.stockStatusLabel}
           </span>
-          User 2
-          <span
-            style={{
-              fontSize: 9,
-              padding: "1px 5px",
-              borderRadius: 3,
-              background: "#DBEAFE",
-              color: "#1E40AF",
-              fontWeight: 800,
-              letterSpacing: ".3px",
-            }}
-          >
-            DISP
+        )}
+        {order.loadingStatusLabel && (
+          <span className="badge badge-prog">{order.loadingStatusLabel}</span>
+        )}
+        {order.primaryReference && (
+          <span className="ref-n-inline">
+            <span className="lbl">Ref N:</span>
+            <span className="val">{order.primaryReference}</span>
           </span>
-        </span>
-        <span className="badge" style={{ background: "#FEF3C7", color: "#92400E" }}>
-          ⚠ Actual ≠ Expected
-        </span>
+        )}
+        {order.assignedToUserName && (
+          <span className="xd-by-chip">
+            <span style={{ color: "#9CA3AF", fontWeight: 500 }}>by</span>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                background: "#0EA5E9",
+                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 9,
+                fontWeight: 800,
+              }}
+            >
+              {initials(order.assignedToUserName)}
+            </span>
+            {order.assignedToUserName}
+          </span>
+        )}
+        {order.hasAlert && (
+          <span className="badge" style={{ background: "#FEF3C7", color: "#92400E" }}>
+            ⚠ {order.alertReason || "Alert"}
+          </span>
+        )}
       </div>
 
-      <div className="xd-actions">
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
-          💬 <span style={{ color: "#9CA3AF" }}>0/0</span>
+      <div className="xd-actions no-print">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: "7px 12px", fontSize: 12 }}
+          onClick={() => setCommentsOpen(true)}
+        >
+          💬 <span style={{ color: "#9CA3AF" }}>{comments.length}</span>
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
-          📷 <span style={{ color: "#9CA3AF" }}>0/5</span>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: "7px 12px", fontSize: 12 }}
+          onClick={() => setPhotosOpen(true)}
+        >
+          📷 <span style={{ color: "#9CA3AF" }}>{photos.length}</span>
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
+        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }} title="Billing">
           $
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: "7px 12px", fontSize: 12 }}
+          title="Print"
+          onClick={() => window.print()}
+        >
           🖨
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: "7px 12px", fontSize: 12 }}
+          title="Supplies"
+          onClick={() => document.getElementById("order-supplies")?.scrollIntoView({ behavior: "smooth" })}
+        >
           📦
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ padding: "7px 12px", fontSize: 12 }}
+          onClick={() => setTimelineOpen(true)}
+        >
           🕘
         </button>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: "7px 12px" }}>
-            📷 Share QR
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          {docError && <span style={{ color: "#DC2626", fontSize: 11 }}>{docError}</span>}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: "7px 12px" }}
+            disabled={docBusy !== null}
+            onClick={downloadQr}
+          >
+            📷 {docBusy === "qr" ? "…" : "Share QR"}
           </button>
-          <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: "7px 12px" }}>
-            📥 BOL PDF
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ fontSize: 12, padding: "7px 12px" }}
+            disabled={docBusy !== null}
+            onClick={downloadBol}
+          >
+            📥 {docBusy === "bol" ? "…" : "BOL PDF"}
           </button>
-          <button type="button" className="btn btn-primary" style={{ padding: "7px 14px", fontSize: 12 }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: "7px 14px", fontSize: 12 }}
+            onClick={() => setEditOpen(true)}
+          >
             ✏️ Edit
           </button>
         </div>
       </div>
 
-      <div className="xd-readonly">
-        <span style={{ fontSize: 16 }}>ℹ️</span>
-        <span>
-          <strong>Read-only:</strong> Transfer операції між hub-ами виконує тільки call center. Якщо
-          треба перенести — натисни Chat.
-        </span>
-      </div>
-
       <div className="xd-meta">
         <div className="xd-meta-col">
           <div className="k">Customer</div>
-          <div style={{ fontWeight: 600 }}>R-way Transport</div>
+          <div style={{ fontWeight: 600 }}>{order.customerName || "—"}</div>
           <div className="k">Hub</div>
-          <div>Markham (ON)</div>
+          <div>{hubLabel}</div>
           <div className="k">Services</div>
           <div>
-            <span className="badge" style={{ background: "#DBEAFE", color: "#1E40AF" }}>
-              Transload
-            </span>{" "}
-            <span className="badge" style={{ background: "#EDE9FE", color: "#5B21B6" }}>
-              Restock &amp; Rework
-            </span>
+            {(order.services?.length ?? 0) === 0 ? (
+              "—"
+            ) : (
+              order.services.map((s) => (
+                <span
+                  key={s}
+                  className="badge"
+                  style={{ background: "#DBEAFE", color: "#1E40AF", marginRight: 4 }}
+                >
+                  {s}
+                </span>
+              ))
+            )}
           </div>
           <div className="k">Date</div>
-          <div style={{ color: "#DC2626", fontWeight: 600 }}>17 Apr 2026 · today</div>
+          <div style={{ color: "#DC2626", fontWeight: 600 }}>
+            {formatDetailDate(order.scheduledAt)}
+          </div>
           <div className="k">Declared q-ty</div>
           <div style={{ fontWeight: 600 }}>
-            10 <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 500 }}>Std · 48×40</span>
+            {order.expected.quantity ?? "—"}{" "}
+            {order.expected.unitLabel && (
+              <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 500 }}>
+                {order.expected.unitLabel}
+              </span>
+            )}
           </div>
           <div className="k">Actual q-ty</div>
-          <div style={{ fontWeight: 600, color: "#78350F" }}>
-            12{" "}
-            <span className="badge" style={{ background: "#FB923C", color: "#fff", fontSize: 10 }}>
-              Δ +2
-            </span>
+          <div style={{ fontWeight: 600, color: hasQtyDelta ? "#78350F" : undefined }}>
+            {order.actual.quantity ?? "—"}{" "}
+            {hasQtyDelta && (
+              <span className="badge" style={{ background: "#FB923C", color: "#fff", fontSize: 10 }}>
+                Δ {deltaLabel(qtyDelta)}
+              </span>
+            )}
           </div>
           <div className="k">Trailer type</div>
           <div>
-            <span className="badge" style={{ background: "#F3F4F6", color: "#374151" }}>
-              Van · 53ft
-            </span>
+            {order.trailerType ? (
+              <span className="badge" style={{ background: "#F3F4F6", color: "#374151" }}>
+                {order.trailerType}
+              </span>
+            ) : (
+              "—"
+            )}
           </div>
         </div>
         <div className="xd-meta-col">
           <div className="k">Carrier</div>
-          <div style={{ fontWeight: 600 }}>R-way Transport Inc.</div>
+          <div style={{ fontWeight: 600 }}>{order.carrierName || "—"}</div>
           <div className="k">Phone</div>
-          <div>+1 647 555 0199</div>
+          <div>{order.phone || "—"}</div>
           <div className="k">Truck / trailer</div>
-          <div>TRK-4521 / TRL-8830</div>
+          <div>
+            {order.truckNumber || "—"} / {order.trailerNumber || "—"}
+          </div>
           <div className="k">Dock</div>
           <div>
-            <strong style={{ color: "#ED1C2E" }}>Dock 12 · Bay B</strong>
+            {dock.dockCode ? (
+              <strong style={{ color: "#ED1C2E" }}>
+                Dock {dock.dockCode}
+                {dock.dockBay ? ` · Bay ${dock.dockBay}` : ""}
+              </strong>
+            ) : (
+              "—"
+            )}
           </div>
           <div className="k">Assigned to</div>
-          <div style={{ color: "#ED1C2E", fontWeight: 600 }}>User 6 (floor lead)</div>
+          <div style={{ color: "#ED1C2E", fontWeight: 600 }}>
+            {order.assignedToUserName || "—"}
+          </div>
           <div className="k">Status flow</div>
           <div>
             <span style={{ fontSize: 11, color: "#374151" }}>
-              Draft → Ready → <strong style={{ color: "#2563EB" }}>In Progress</strong> → Closed
+              {STATUS_FLOW.map((step, i) => {
+                const active =
+                  order.status === step.value ||
+                  (order.status === 4 && step.value === 3);
+                return (
+                  <span key={step.value}>
+                    {i > 0 ? " → " : ""}
+                    {active ? (
+                      <strong style={{ color: "#2563EB" }}>{step.label}</strong>
+                    ) : (
+                      step.label
+                    )}
+                  </span>
+                );
+              })}
             </span>
           </div>
           <div className="k">Deltas detected</div>
           <div>
-            <span className="badge" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10 }}>
-              1 (q-ty)
-            </span>{" "}
-            <a href="#" style={{ color: "#2563EB", fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
-              View all →
-            </a>
+            {hasQtyDelta ? (
+              <span className="badge" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10 }}>
+                1 (q-ty)
+              </span>
+            ) : (
+              <span style={{ color: "#6B7280", fontSize: 12 }}>None</span>
+            )}
           </div>
         </div>
       </div>
@@ -223,92 +387,84 @@ export default function OrderDetailPage({
                 letterSpacing: 1,
               }}
             >
-              MARKHAM HUB
+              {(dock.hubName || order.hubName).toUpperCase()} HUB
             </div>
-            <div
-              style={{
-                position: "absolute",
-                top: 44,
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: 70,
-                height: 50,
-                background: "#ED1C2E",
-                border: "2px solid #991B1B",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 11,
-                fontWeight: 700,
-              }}
-            >
-              DOCK 12
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                top: 44,
-                left: 30,
-                width: 38,
-                height: 50,
-                background: "#9CA3AF",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 9,
-              }}
-            >
-              11
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                top: 44,
-                right: 30,
-                width: 38,
-                height: 50,
-                background: "#9CA3AF",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 9,
-              }}
-            >
-              13
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                bottom: 10,
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: 56,
-                height: 28,
-                background: "#fff",
-                border: "2px solid #1F2A3A",
-                borderRadius: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 9,
-                fontWeight: 700,
-              }}
-            >
-              🚚 TRL-8830
-            </div>
+            {(dock.hubDocks?.length ? dock.hubDocks : [{ code: dock.dockCode || "—", bayLabel: dock.dockBay, isAssigned: true }]).map(
+              (d, index, arr) => {
+                const assigned = d.isAssigned || d.code === dock.dockCode;
+                const mid = Math.floor(arr.length / 2);
+                const left = assigned
+                  ? "50%"
+                  : index < mid
+                    ? 30 + index * 44
+                    : undefined;
+                const right = !assigned && index >= mid ? 30 + (arr.length - 1 - index) * 44 : undefined;
+                return (
+                  <div
+                    key={`${d.code}-${index}`}
+                    style={{
+                      position: "absolute",
+                      top: 44,
+                      left: left !== undefined ? left : undefined,
+                      right: right !== undefined ? right : undefined,
+                      transform: assigned ? "translateX(-50%)" : undefined,
+                      width: assigned ? 70 : 38,
+                      height: 50,
+                      background: assigned ? "#ED1C2E" : "#9CA3AF",
+                      border: assigned ? "2px solid #991B1B" : undefined,
+                      borderRadius: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: assigned ? 11 : 9,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {assigned ? `DOCK ${d.code}` : d.code}
+                  </div>
+                );
+              },
+            )}
+            {dock.trailerNumber && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 56,
+                  height: 28,
+                  background: "#fff",
+                  border: "2px solid #1F2A3A",
+                  borderRadius: 3,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 9,
+                  fontWeight: 700,
+                }}
+              >
+                🚚 {dock.trailerNumber}
+              </div>
+            )}
           </div>
           <div style={{ fontSize: 12, marginTop: 10, lineHeight: 1.55 }}>
             <div>
-              <strong>Dock 12 · Bay B</strong>
+              <strong>
+                {dock.dockCode
+                  ? `Dock ${dock.dockCode}${dock.dockBay ? ` · Bay ${dock.dockBay}` : ""}`
+                  : "No dock assigned"}
+              </strong>
             </div>
-            <div style={{ color: "#6B7280" }}>Assigned 17 Apr, 08:42</div>
-            <div style={{ color: "#16A34A", fontWeight: 600, marginTop: 4 }}>● Trailer docked · loading</div>
+            <div style={{ color: "#6B7280" }}>
+              {dock.assignedAt ? `Assigned ${formatDetailDateTime(dock.assignedAt)}` : "Not assigned yet"}
+            </div>
+            {dock.statusLabel && (
+              <div style={{ color: "#16A34A", fontWeight: 600, marginTop: 4 }}>
+                ● {dock.statusLabel}
+              </div>
+            )}
           </div>
         </div>
 
@@ -317,248 +473,156 @@ export default function OrderDetailPage({
             <div className="xd-panel-title" style={{ marginBottom: 6 }}>
               Expected (BOL)
             </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "#1F2A3A" }}>10</div>
-            <div style={{ fontSize: 11, color: "#6B7280" }}>Standard · 48×40</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#1F2A3A" }}>
+              {order.expected.quantity ?? "—"}
+            </div>
+            <div style={{ fontSize: 11, color: "#6B7280" }}>
+              {order.expected.unitLabel || "—"}
+            </div>
           </div>
           <div
             className="xd-panel"
-            style={{ padding: 12, background: "#FEF3C7", border: "1px solid #FDE68A" }}
+            style={{
+              padding: 12,
+              background: hasQtyDelta ? "#FEF3C7" : undefined,
+              border: hasQtyDelta ? "1px solid #FDE68A" : undefined,
+            }}
           >
-            <div className="xd-panel-title" style={{ marginBottom: 6, color: "#78350F" }}>
+            <div
+              className="xd-panel-title"
+              style={{ marginBottom: 6, color: hasQtyDelta ? "#78350F" : undefined }}
+            >
               Actual (warehouse)
             </div>
             <div
               style={{
                 fontSize: 28,
                 fontWeight: 700,
-                color: "#78350F",
+                color: hasQtyDelta ? "#78350F" : "#1F2A3A",
                 display: "flex",
                 alignItems: "baseline",
                 gap: 6,
               }}
             >
-              12{" "}
-              <span
-                style={{
-                  fontSize: 12,
-                  background: "#FB923C",
-                  color: "#fff",
-                  padding: "2px 8px",
-                  borderRadius: 10,
-                }}
-              >
-                +2
-              </span>
+              {order.actual.quantity ?? "—"}{" "}
+              {hasQtyDelta && (
+                <span
+                  style={{
+                    fontSize: 12,
+                    background: "#FB923C",
+                    color: "#fff",
+                    padding: "2px 8px",
+                    borderRadius: 10,
+                  }}
+                >
+                  {deltaLabel(qtyDelta)}
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 11, color: "#78350F" }}>Delta from BOL · read-only</div>
+            <div style={{ fontSize: 11, color: hasQtyDelta ? "#78350F" : "#6B7280" }}>
+              {hasQtyDelta ? "Delta from BOL · read-only" : "Matches BOL"}
+            </div>
           </div>
           <div className="xd-panel" style={{ padding: 12 }}>
             <div className="xd-panel-title" style={{ marginBottom: 6 }}>
               Warehouse note
             </div>
             <div style={{ fontSize: 12, color: "#1F2A3A", lineHeight: 1.5 }}>
-              &quot;Counted 12 pallets on arrival, BOL says 10. <strong>1 pallet damaged</strong> →
-              routed to Disposal.&quot;
+              {order.warehouseNote.text ? `“${order.warehouseNote.text}”` : "—"}
             </div>
-            <div style={{ marginTop: 6, display: "flex", gap: 4 }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  background: "#E5E7EB",
-                  borderRadius: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                }}
-              >
-                📷
-              </div>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  background: "#E5E7EB",
-                  borderRadius: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                }}
-              >
-                📷
-              </div>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  background: "#E5E7EB",
-                  borderRadius: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  color: "#6B7280",
-                }}
-              >
-                +3
-              </div>
+            <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {photos.slice(0, 3).map((p) => (
+                <a key={p.id} href={mediaUrl(p.downloadUrl)} target="_blank" rel="noreferrer">
+                  <img
+                    src={mediaUrl(p.downloadUrl)}
+                    alt={p.fileName}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      objectFit: "cover",
+                      borderRadius: 4,
+                      background: "#E5E7EB",
+                    }}
+                  />
+                </a>
+              ))}
+              {photos.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setPhotosOpen(true)}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: "#E5E7EB",
+                    borderRadius: 4,
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    color: "#6B7280",
+                    cursor: "pointer",
+                  }}
+                >
+                  +{photos.length - 3}
+                </button>
+              )}
+              {photos.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPhotosOpen(true)}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: "#E5E7EB",
+                    borderRadius: 4,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  📷
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Operations */}
-      <div className="xd-table-wrap">
-        <div className="xd-table-head">
-          <div style={{ fontWeight: 700, color: "#1F2A3A" }}>Operations</div>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: "4px 10px" }}>
-            + Operation
-          </button>
-        </div>
-        <table className="xd-table">
-          <thead>
-            <tr>
-              <th>Operation</th>
-              <th style={{ padding: "8px 6px" }}>Trailer</th>
-              <th style={{ padding: "8px 6px", textAlign: "right" }}>Q-ty</th>
-              <th style={{ padding: "8px 6px" }}>Unit</th>
-              <th style={{ padding: "8px 6px" }}>Applied at</th>
-              <th style={{ padding: "8px 6px" }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <span style={{ color: "#059669", fontWeight: 700 }}>$</span> Unloading
-              </td>
-              <td style={{ padding: "10px 6px" }}>TRL-8830</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", color: "#2563EB", fontWeight: 600 }}>
-                12
-              </td>
-              <td style={{ padding: "10px 6px" }}>Standard (48×40)</td>
-              <td style={{ padding: "10px 6px", color: "#6B7280" }}>17 Apr · 08:55</td>
-              <td style={{ padding: "10px 6px", color: "#9CA3AF" }}>💬 0 · ⧉ 4 · ⧉ · 🗑</td>
-            </tr>
-            <tr style={{ background: "#FEF2F2" }}>
-              <td>
-                <span className="badge" style={{ background: "#FEE2E2", color: "#991B1B" }}>
-                  Disposal
-                </span>
-              </td>
-              <td style={{ padding: "10px 6px" }}>—</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", color: "#DC2626", fontWeight: 600 }}>
-                1
-              </td>
-              <td style={{ padding: "10px 6px" }}>Standard (48×40)</td>
-              <td style={{ padding: "10px 6px", color: "#6B7280" }}>17 Apr · 09:10</td>
-              <td style={{ padding: "10px 6px", color: "#9CA3AF" }}>💬 1 · ⧉ 2 · ⧉ · 🗑</td>
-            </tr>
-            <tr>
-              <td>Restack</td>
-              <td style={{ padding: "10px 6px" }}>—</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", color: "#2563EB", fontWeight: 600 }}>
-                11
-              </td>
-              <td style={{ padding: "10px 6px" }}>Standard (48×40)</td>
-              <td style={{ padding: "10px 6px", color: "#6B7280" }}>17 Apr · 09:25</td>
-              <td style={{ padding: "10px 6px", color: "#9CA3AF" }}>💬 0 · ⧉ 1 · ⧉ · 🗑</td>
-            </tr>
-            <tr>
-              <td>
-                <span style={{ color: "#059669", fontWeight: 700 }}>$</span> Loading
-              </td>
-              <td style={{ padding: "10px 6px" }}>TRL-8830</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", color: "#2563EB", fontWeight: 600 }}>
-                11
-              </td>
-              <td style={{ padding: "10px 6px" }}>Standard (48×40)</td>
-              <td style={{ padding: "10px 6px", color: "#6B7280" }}>17 Apr · 10:40</td>
-              <td style={{ padding: "10px 6px", color: "#9CA3AF" }}>💬 0 · ⧉ 0 · ⧉ · 🗑</td>
-            </tr>
-          </tbody>
-        </table>
+      <OperationsTable
+        orderId={order.id}
+        operations={order.operations ?? []}
+        defaultTrailer={order.trailerNumber}
+      />
+
+      <div id="order-supplies">
+        <SuppliesTable
+          orderId={order.id}
+          orderNumber={order.number}
+          supplies={order.supplies ?? []}
+          subtotalCents={order.suppliesSubtotalCents ?? 0}
+        />
       </div>
 
-      {/* Supplies */}
-      <div className="xd-table-wrap" style={{ marginBottom: 0 }}>
-        <div className="xd-table-head" style={{ padding: "10px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <strong style={{ color: "#1F2A3A" }}>Supplies</strong>
-            <span style={{ fontSize: 11, color: "#6B7280" }}>
-              mandatory stock items purchased as Platform Sale
-            </span>
-          </div>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: "4px 10px" }}>
-            + Supply
-          </button>
-        </div>
-        <table className="xd-table">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th style={{ padding: "8px 6px" }}>Category</th>
-              <th style={{ padding: "8px 6px", textAlign: "right" }}>Q-ty</th>
-              <th style={{ padding: "8px 6px", textAlign: "right" }}>Unit $</th>
-              <th style={{ padding: "8px 6px", textAlign: "right" }}>Line total</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Straps 12</td>
-              <td style={{ padding: "10px 6px" }}>
-                <span className="badge" style={{ background: "#DBEAFE", color: "#1E40AF", fontSize: 10 }}>
-                  Securement
-                </span>
-              </td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>4</td>
-              <td style={{ padding: "10px 6px", textAlign: "right" }}>$1</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>$1</td>
-              <td style={{ color: "#9CA3AF" }}>✏️ · 🗑</td>
-            </tr>
-            <tr>
-              <td>Corners 50</td>
-              <td style={{ padding: "10px 6px" }}>
-                <span className="badge" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10 }}>
-                  Edge protect
-                </span>
-              </td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>16</td>
-              <td style={{ padding: "10px 6px", textAlign: "right" }}>$1</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>$1</td>
-              <td style={{ color: "#9CA3AF" }}>✏️ · 🗑</td>
-            </tr>
-            <tr>
-              <td>Shrink wrap 120g</td>
-              <td style={{ padding: "10px 6px" }}>
-                <span className="badge" style={{ background: "#DCFCE7", color: "#166534", fontSize: 10 }}>
-                  Wrap
-                </span>
-              </td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>2</td>
-              <td style={{ padding: "10px 6px", textAlign: "right" }}>$1</td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600 }}>$1</td>
-              <td style={{ color: "#9CA3AF" }}>✏️ · 🗑</td>
-            </tr>
-          </tbody>
-          <tfoot style={{ background: "#F9FAFB", fontSize: 12 }}>
-            <tr style={{ borderTop: "1px solid #E5E7EB" }}>
-              <td colSpan={4} style={{ padding: "10px 14px", textAlign: "right", color: "#6B7280", fontWeight: 600 }}>
-                Supply subtotal
-              </td>
-              <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 700, color: "#1F2A3A" }}>$1</td>
-              <td style={{ padding: "10px 14px", color: "#6B7280", fontSize: 11 }}>→ Invoice line items</td>
-            </tr>
-          </tfoot>
-        </table>
-        <div className="xd-supply-hint">
-          💡 Supply picker (FOE catalog — 16 SKUs) буде доступний під час створення Cross-Dock /
-          Sub-order (Cargo step) і в Builder delegation mode. Client бачить тільки Platform price; WP
-          та margin split — приховані.
-        </div>
-      </div>
+      <CommentsPanel
+        orderId={order.id}
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+      />
+      <WarehousePhotosPanel
+        orderId={order.id}
+        photos={photos}
+        open={photosOpen}
+        onClose={() => setPhotosOpen(false)}
+      />
+      <TimelinePanel
+        orderId={order.id}
+        open={timelineOpen}
+        onClose={() => setTimelineOpen(false)}
+      />
+      {editOpen && (
+        <EditOrderModal order={order} open onClose={() => setEditOpen(false)} />
+      )}
     </>
   );
 }

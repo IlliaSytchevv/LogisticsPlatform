@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logoutAction } from "@/actions/auth";
+import { useEffect, useState } from "react";
+import { getSessionAction } from "@/actions/auth/get-session.action";
+import { GlobalOrderSearch } from "@/components/freitty/global-order-search";
+import { HelpModal } from "@/components/freitty/help-modal";
+import { NotificationsPanel } from "@/components/freitty/notifications-panel";
+import { useLogout } from "@/hooks/use-logout";
 
 type Props = {
   children: React.ReactNode;
@@ -11,16 +16,33 @@ type Props = {
   searchPlaceholder?: string;
 };
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
 export function FreittyShell({
   children,
   ordersBadge = 3,
   showNewOrder = false,
-  searchPlaceholder = "🔍 Search orders, invoices, documents…",
+  searchPlaceholder = "Search orders by number, ref, hub, carrier…",
 }: Props) {
   const pathname = usePathname();
+  const { logout, pending } = useLogout();
+  const [name, setName] = useState("User");
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const ordersActive =
     pathname === "/dashboard" || pathname.startsWith("/orders") || pathname === "/";
   const settingsActive = pathname.startsWith("/settings");
+
+  useEffect(() => {
+    void getSessionAction().then((user) => {
+      if (user?.name) setName(user.name);
+    });
+  }, []);
 
   return (
     <div className="fc-shell">
@@ -52,33 +74,59 @@ export function FreittyShell({
             </Link>
           </div>
         ) : null}
-        <form action={logoutAction} style={{ padding: 20, marginTop: "auto" }}>
-          <button type="submit" className="btn btn-ghost" style={{ color: "#B0B8C4", width: "100%" }}>
-            Log out
+        <div style={{ padding: 20, marginTop: "auto" }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ color: "#B0B8C4", width: "100%" }}
+            disabled={pending}
+            onClick={logout}
+          >
+            {pending ? "Logging out…" : "Log out"}
           </button>
-        </form>
+        </div>
       </aside>
 
       <main className="fc-main">
         <div className="fc-topbar">
-          <div className="fc-search">{searchPlaceholder}</div>
+          <GlobalOrderSearch placeholder={searchPlaceholder} />
           <div className="spacer" />
           <div className="fc-balance" title="Поточний баланс · клік → Billing">
             💳 $1 <span className="topup">Top up →</span>
           </div>
-          <button type="button" className="fc-topbar-btn" aria-label="Notifications">
-            🔔 <span className="dot" />
-          </button>
-          <button type="button" className="fc-topbar-btn" aria-label="Help">
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              className="fc-topbar-btn"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+              onClick={() => setNotificationsOpen((v) => !v)}
+            >
+              🔔 {notificationsOpen ? null : <span className="dot" />}
+            </button>
+            <NotificationsPanel
+              open={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+            />
+          </div>
+          <button
+            type="button"
+            className="fc-topbar-btn"
+            aria-label="Help"
+            aria-expanded={helpOpen}
+            onClick={() => setHelpOpen(true)}
+          >
             ❓
           </button>
           <div className="fc-user">
-            <div className="avatar">U1</div>
-            <div className="name">User 1</div>
+            <div className="avatar">{initials(name)}</div>
+            <div className="name">{name}</div>
           </div>
         </div>
         <div className="fc-content">{children}</div>
       </main>
+
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

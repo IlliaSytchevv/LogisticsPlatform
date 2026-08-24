@@ -1,43 +1,38 @@
 import { ApiError } from "@/types/auth";
-import { AUTH_COOKIE_NAME } from "@/lib/auth/constants";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080";
 
 type FetcherOptions = RequestInit & {
-  token?: string | null;
   skipAuth?: boolean;
 };
 
-function getBrowserToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${AUTH_COOKIE_NAME}=`));
-  return match ? decodeURIComponent(match.split("=")[1] ?? "") : null;
-}
-
+/**
+ * Browser API client — goes through Next.js BFF (`/api/backend/*`)
+ * so httpOnly access/refresh cookies stay on the Next origin.
+ * Refresh-on-401 happens inside the BFF route (server).
+ */
 export async function fetcher<T>(
   path: string,
   options: FetcherOptions = {},
 ): Promise<T> {
-  const { token, skipAuth, headers, ...init } = options;
-  const authToken = skipAuth ? null : (token ?? getBrowserToken());
+  const { skipAuth: _skipAuth, headers, ...init } = options;
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`/api/backend${path}`, {
     ...init,
+    credentials: "include",
     headers: {
-      "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...(init.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...headers,
     },
   });
 
   if (!response.ok) {
-    let body: unknown;
+    const raw = await response.text();
+    let body: unknown = raw;
     try {
-      body = await response.json();
+      body = raw ? JSON.parse(raw) : null;
     } catch {
-      body = await response.text();
+      // keep raw
     }
     throw new ApiError(
       typeof body === "string" && body ? body : `HTTP ${response.status}`,

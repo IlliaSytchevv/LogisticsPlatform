@@ -151,3 +151,37 @@
   color: #5b21b6;
   font-size: 11px;
 }
+
+@media print {
+  .xd-actions,
+  .xd-hub-header,
+  .xd-supply-hint {
+    display: none !important;
+  }
+
+  .xd-dock-row {
+    grid-template-columns: 1fr 1fr !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .xd-dock-map {
+    height: 110px !important;
+  }
+
+  .xd-meta,
+  .xd-panel,
+  .xd-table-wrap {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .xd-table-head .btn {
+    display: none !important;
+  }
+
+  .xd-order-row {
+    margin-bottom: 8px !important;
+  }
+}
