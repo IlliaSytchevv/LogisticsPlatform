@@ -349,6 +349,34 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
             entity.LineTotalCents);
     }
 
+    public async Task<OrderSupplyData?> UpdateSupplyQuantityAsync(
+        Guid orderId,
+        Guid supplyId,
+        int quantity,
+        CancellationToken cancellationToken)
+    {
+        OrderSupply? entity = await dbContext.OrderSupplies
+            .FirstOrDefaultAsync(x => x.Id == supplyId && x.OrderId == orderId, cancellationToken);
+
+        if (entity is null)
+            return null;
+
+        entity.Quantity = quantity;
+        entity.LineTotalCents = quantity * entity.UnitPriceCents;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OrderSupplyData(
+            entity.Id,
+            entity.OrderId,
+            entity.Sku,
+            entity.Name,
+            entity.Category,
+            entity.Quantity,
+            entity.UnitPriceCents,
+            entity.LineTotalCents);
+    }
+
     public async Task<bool> SoftDeleteSupplyAsync(
         Guid orderId,
         Guid supplyId,

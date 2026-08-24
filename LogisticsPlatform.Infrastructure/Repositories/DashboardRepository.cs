@@ -1,5 +1,6 @@
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Dashboard;
+using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using LogisticsPlatform.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
@@ -22,26 +23,36 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
         DateTimeOffset last30Days = now.AddDays(-30);
         DateTimeOffset previous30Days = now.AddDays(-60);
 
-        var metrics = await dbContext.Orders
-            .AsNoTracking()
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                ActiveOrders = g.Count(o => ActiveStatuses.Contains(o.Status)),
-                ActiveOrdersThisWeek = g.Count(o => ActiveStatuses.Contains(o.Status) && o.CreatedAt >= startOfWeek),
-                CompletedLast30Days = g.Count(o => o.Status == OrderStatus.Completed && o.CompletedAt >= last30Days),
-                CompletedPrevious30Days = g.Count(o =>
-                    o.Status == OrderStatus.Completed
-                    && o.CompletedAt >= previous30Days
-                    && o.CompletedAt < last30Days),
-                AwaitingClientAction = g.Count(o => o.NextAction.AwaitingClientAction),
-                Alerts = g.Count(o => o.HasAlert),
-                NeedAttention = g.Count(o => o.NextAction.AwaitingClientAction || o.HasAlert)
-            })
-            .SingleOrDefaultAsync(cancellationToken);
+        IQueryable<Order> orders = dbContext.Orders.AsNoTracking();
 
-        List<AlertSampleData> alertSamples = await dbContext.Orders
-            .AsNoTracking()
+        int activeOrders = await orders.CountAsync(
+            o => ActiveStatuses.Contains(o.Status),
+            cancellationToken);
+
+        int activeOrdersThisWeek = await orders.CountAsync(
+            o => ActiveStatuses.Contains(o.Status) && o.CreatedAt >= startOfWeek,
+            cancellationToken);
+
+        int completedLast30Days = await orders.CountAsync(
+            o => o.Status == OrderStatus.Completed && o.CompletedAt >= last30Days,
+            cancellationToken);
+
+        int completedPrevious30Days = await orders.CountAsync(
+            o => o.Status == OrderStatus.Completed
+                 && o.CompletedAt >= previous30Days
+                 && o.CompletedAt < last30Days,
+            cancellationToken);
+
+        int awaitingClientAction = await orders.CountAsync(
+            o => o.NextAction.AwaitingClientAction,
+            cancellationToken);
+
+        int alerts = await orders.CountAsync(o => o.HasAlert, cancellationToken);
+
+        // Total is the sum of the two KPI chips (an order can be both awaiting and alert).
+        int needAttention = awaitingClientAction + alerts;
+
+        List<AlertSampleData> alertSamples = await orders
             .Where(o => o.HasAlert)
             .OrderByDescending(o => o.CreatedAt)
             .Take(5)
@@ -49,13 +60,13 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
             .ToListAsync(cancellationToken);
 
         return new DashboardMetricsData(
-            metrics?.ActiveOrders ?? 0,
-            metrics?.ActiveOrdersThisWeek ?? 0,
-            metrics?.CompletedLast30Days ?? 0,
-            metrics?.CompletedPrevious30Days ?? 0,
-            metrics?.NeedAttention ?? 0,
-            metrics?.AwaitingClientAction ?? 0,
-            metrics?.Alerts ?? 0,
+            activeOrders,
+            activeOrdersThisWeek,
+            completedLast30Days,
+            completedPrevious30Days,
+            needAttention,
+            awaitingClientAction,
+            alerts,
             alertSamples);
     }
 

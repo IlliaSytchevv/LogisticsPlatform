@@ -15,6 +15,7 @@ public static class DashboardActiveOrdersMapper
 
     private static OrderCardResponse ToCard(ActiveOrderData order, DateTimeOffset now) =>
         new(
+            order.Id,
             order.Number,
             order.Type,
             order.Status,

@@ -9,5 +9,5 @@ public sealed record OrdersTabCountsRequest(
     DateTimeOffset? DateTo = null,
     OrderStatus? Status = null,
     [property: Description(
-        "Free-text search by order number, hub name, carrier, creator, or sub-order reference/number. Examples: Markham, FR001693, TForce, REF-1103")]
+        "Free-text search by order number, ref, hub, or carrier. Examples: Markham, FR001693, TForce, REF-1103")]
     string? Search = null);

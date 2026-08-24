@@ -35,7 +35,8 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
                 request.ScheduledAt,
                 request.DestinationCity,
                 request.DestinationRegion,
-                request.PrimaryReference),
+                request.PrimaryReference,
+                request.Supplies),
             cancellationToken);
 
         return GetActionResult(result);

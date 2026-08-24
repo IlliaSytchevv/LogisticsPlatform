@@ -47,7 +47,10 @@ public static class DependencyInjection
 
         services.AddScoped<IUserManagerWrapper, UserManagerWrapper>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<INotificationsRepository, NotificationsRepository>();
+        services.AddScoped<ISupplyCatalogRepository, SupplyCatalogRepository>();
         services.AddScoped<IOrdersRepository, OrdersRepository>();
         services.AddScoped<IOrderDetailsRepository, OrderDetailsRepository>();
         services.AddScoped<IFileWriter, CsvExportWriter>();
@@ -68,6 +71,8 @@ public static class DependencyInjection
             })
             .AddJwtBearer(options =>
             {
+                // Keep ClaimTypes.Role so [Authorize(Roles = "Admin")] matches JWT role claims.
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -77,7 +82,24 @@ public static class DependencyInjection
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtOptions.SecretKey))
+                        Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+                    RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+                    NameClaimType = System.Security.Claims.ClaimTypes.Name,
+                    ClockSkew = TimeSpan.FromMinutes(1)
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = context =>
+                    {
+                        string? typ = context.Principal?.FindFirst(JwtTokenService.TokenTypeClaim)?.Value;
+                        if (string.Equals(typ, JwtTokenService.RefreshTokenType, StringComparison.Ordinal))
+                        {
+                            context.Fail("Refresh token cannot be used as access token.");
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

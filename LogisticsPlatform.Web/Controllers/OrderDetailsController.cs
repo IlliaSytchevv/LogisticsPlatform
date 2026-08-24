@@ -4,6 +4,7 @@ using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperation;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationComment;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationPhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddSupply;
+using LogisticsPlatform.Application.UseCases.OrderDetails.AddSupplyFromCatalog;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddTimelineEntry;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.DeleteOperation;
@@ -21,7 +22,10 @@ using LogisticsPlatform.Application.UseCases.OrderDetails.GetTimeline;
 using LogisticsPlatform.Application.UseCases.OrderDetails.GetWarehousePhoto;
 using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateOrder;
 using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateSupply;
+using LogisticsPlatform.Application.UseCases.OrderDetails.UpdateSupplyQuantity;
 using LogisticsPlatform.Domain.DTO.Orders.Detail;
+using LogisticsPlatform.Domain.DTO.Supplies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 
@@ -37,7 +41,6 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
-    [HttpPut("{orderId:guid}")]
     [HttpPatch("{orderId:guid}")]
     public async Task<IActionResult> UpdateOrder(
         Guid orderId,
@@ -204,6 +207,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("{orderId:guid}/supplies")]
     public async Task<IActionResult> AddSupply(
         Guid orderId,
@@ -223,6 +227,21 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize]
+    [HttpPost("{orderId:guid}/supplies/from-catalog")]
+    public async Task<IActionResult> AddSupplyFromCatalog(
+        Guid orderId,
+        [FromBody] AddSupplyFromCatalogRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new AddSupplyFromCatalogCommand(orderId, request.CatalogItemId, request.Quantity),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{orderId:guid}/supplies/{supplyId:guid}")]
     public async Task<IActionResult> UpdateSupply(
         Guid orderId,
@@ -244,6 +263,22 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize]
+    [HttpPatch("{orderId:guid}/supplies/{supplyId:guid}/quantity")]
+    public async Task<IActionResult> UpdateSupplyQuantity(
+        Guid orderId,
+        Guid supplyId,
+        [FromBody] UpdateOrderSupplyQuantityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await Dispatcher.Send(
+            new UpdateOrderSupplyQuantityCommand(orderId, supplyId, request.Quantity),
+            cancellationToken);
+
+        return GetActionResult(result);
+    }
+
+    [Authorize]
     [HttpDelete("{orderId:guid}/supplies/{supplyId:guid}")]
     public async Task<IActionResult> DeleteSupply(
         Guid orderId,

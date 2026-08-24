@@ -1,7 +1,11 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.UseCases.Auth.Login;
+using LogisticsPlatform.Application.UseCases.Auth.Logout;
+using LogisticsPlatform.Application.UseCases.Auth.RefreshToken;
 using LogisticsPlatform.Application.UseCases.Auth.Register;
 using LogisticsPlatform.Domain.DTO.Authorization;
+using LogisticsPlatform.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
@@ -26,6 +30,42 @@ public sealed class AuthController(IDispatcher dispatcher) : ApiController(dispa
             new LoginCommand(request.Username, request.Password),
             cancellationToken);
 
+        if (!result.IsSuccess)
+            return GetActionResult(result);
+
+        RefreshCookie.Set(Response, result.Value.RefreshToken, result.Value.RefreshExpiresUtc);
+        return Ok(new AuthTokenResponse(result.Value.AccessToken));
+    }
+
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RefreshToken(CancellationToken cancellationToken)
+    {
+        string? refreshFromCookie = Request.Cookies[RefreshCookie.Name];
+
+        var result = await Dispatcher.Send(
+            new RefreshTokenCommand(refreshFromCookie ?? string.Empty),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+            return GetActionResult(result);
+
+        RefreshCookie.Set(Response, result.Value.RefreshToken, result.Value.RefreshExpiresUtc);
+        return Ok(new AuthTokenResponse(result.Value.AccessToken));
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        string? refreshFromCookie = Request.Cookies[RefreshCookie.Name];
+        
+        var result = await Dispatcher.Send(
+            new LogoutCommand(refreshFromCookie),
+            cancellationToken);
+
+        RefreshCookie.Clear(Response);
+        
         return GetActionResult(result);
     }
 }

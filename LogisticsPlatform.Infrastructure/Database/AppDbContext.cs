@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<OrderComment> OrderComments { get; set; }
     public DbSet<OrderTimelineEntry> OrderTimelineEntries { get; set; }
     public DbSet<HubDock> HubDocks { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<SupplyCatalogItem> SupplyCatalogItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

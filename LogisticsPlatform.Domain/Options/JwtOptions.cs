@@ -7,5 +7,7 @@ public class JwtOptions
     public string Issuer { get; init; } = null!;
     public string Audience { get; init; } = null!;
     public string SecretKey { get; init; } = null!;
-    public int ExpirationInMinutes { get; init; }
+
+    public int AccessExpirationInMinutes { get; set; } = 35;
+    public int RefreshExpirationInDays { get; set; } = 7;
 }

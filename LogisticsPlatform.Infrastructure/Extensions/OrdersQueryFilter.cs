@@ -1,6 +1,7 @@
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace LogisticsPlatform.Infrastructure.Repositories;
 
@@ -22,13 +23,17 @@ internal static class OrdersQueryFilter
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            string search = filter.Search.Trim();
+            string pattern = $"%{filter.Search.Trim()}%";
             query = query.Where(o =>
-                o.Number.Contains(search)
-                || o.Hub.Name.Contains(search)
-                || (o.Carrier != null && o.Carrier.Name.Contains(search))
-                || o.CreatedByUser.DisplayName.Contains(search)
-                || o.SubOrders.Any(s => s.Reference.Contains(search) || s.Number.Contains(search)));
+                EF.Functions.ILike(o.Number, pattern)
+                || EF.Functions.ILike(o.Hub.Name, pattern)
+                || (o.Hub.RegionCode != null && EF.Functions.ILike(o.Hub.RegionCode, pattern))
+                || (o.Carrier != null && EF.Functions.ILike(o.Carrier.Name, pattern))
+                || (o.Cabinet.PrimaryReference != null
+                    && EF.Functions.ILike(o.Cabinet.PrimaryReference, pattern))
+                || o.SubOrders.Any(s =>
+                    EF.Functions.ILike(s.Reference, pattern)
+                    || EF.Functions.ILike(s.Number, pattern)));
         }
 
         if (filter.Tab.HasValue)

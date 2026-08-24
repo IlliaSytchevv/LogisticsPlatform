@@ -44,6 +44,12 @@ public interface IOrderDetailsRepository
         long unitPriceCents,
         CancellationToken cancellationToken);
 
+    Task<OrderSupplyData?> UpdateSupplyQuantityAsync(
+        Guid orderId,
+        Guid supplyId,
+        int quantity,
+        CancellationToken cancellationToken);
+
     Task<bool> SoftDeleteSupplyAsync(Guid orderId, Guid supplyId, CancellationToken cancellationToken);
 
     Task<int> CountWarehousePhotosAsync(Guid orderId, CancellationToken cancellationToken);

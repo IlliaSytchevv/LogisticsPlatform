@@ -3,6 +3,7 @@ using LogisticsPlatform.Domain.Enums;
 namespace LogisticsPlatform.Domain.DTO.Dashboard.ActiveOrders;
 
 public sealed record OrderCardResponse(
+    Guid Id,
     string Number,
     OrderType Type,
     OrderStatus Status,

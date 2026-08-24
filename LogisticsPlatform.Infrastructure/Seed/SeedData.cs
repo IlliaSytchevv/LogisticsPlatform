@@ -14,7 +14,7 @@ public static class SeedData
     private const string TestUserName = "testuser";
     private const string TestUserEmail = "testuser@logistics.local";
     private const string TestUserPassword = "Test123!";
-    private const string TestUserIdentityRole = "User";
+    private const string TestUserIdentityRole = "Admin";
 
     private static readonly Guid User1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly Guid User2Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -97,6 +97,7 @@ public static class SeedData
             identityRole: "User");
 
         await SeedCatalogAndOrdersAsync(dbContext);
+        await SeedFoeSupplyCatalogAsync(dbContext);
     }
 
     private static async Task EnsureUserAsync(
@@ -175,6 +176,13 @@ public static class SeedData
 
         if (!await userManager.IsInRoleAsync(user, identityRole))
             await userManager.AddToRoleAsync(user, identityRole);
+
+        // Keep Identity roles aligned with seed: drop extras so Admin vs User is correct after re-seed.
+        foreach (string existing in await userManager.GetRolesAsync(user))
+        {
+            if (!string.Equals(existing, identityRole, StringComparison.OrdinalIgnoreCase))
+                await userManager.RemoveFromRoleAsync(user, existing);
+        }
     }
 
     private static async Task SeedCatalogAndOrdersAsync(AppDbContext dbContext)
@@ -460,4 +468,55 @@ public static class SeedData
 
         await dbContext.SaveChangesAsync();
     }
+
+    private static async Task SeedFoeSupplyCatalogAsync(AppDbContext dbContext)
+    {
+        if (await dbContext.SupplyCatalogItems.AnyAsync())
+            return;
+
+        // 16 FOE SKUs. WP + margin stored for internal use; client API never returns them.
+        SupplyCatalogItem[] items =
+        [
+            Item(1, "WRAP-001", "Shrink wrap 120g", "Packaging", 120, 70, 20),
+            Item(2, "WRAP-002", "Stretch film 500m", "Packaging", 180, 110, 18),
+            Item(3, "STRAP-12", "Straps 12'", "Securing", 80, 45, 22),
+            Item(4, "STRAP-18", "Straps 18'", "Securing", 95, 55, 22),
+            Item(5, "CORN-50", "Corners 50", "Protection", 50, 28, 25),
+            Item(6, "CORN-100", "Corners 100", "Protection", 90, 52, 25),
+            Item(7, "PAL-STD", "Standard pallet", "Pallets", 1500, 900, 15),
+            Item(8, "PAL-XL", "XL pallet", "Pallets", 2200, 1400, 15),
+            Item(9, "LABEL-A4", "Shipping labels A4 (100)", "Labels", 40, 22, 30),
+            Item(10, "TAPE-CLR", "Clear packing tape", "Packaging", 35, 18, 28),
+            Item(11, "EDGE-BD", "Edge boards (pair)", "Protection", 110, 65, 20),
+            Item(12, "BAND-PET", "PET banding roll", "Securing", 250, 160, 18),
+            Item(13, "SLIP-SHT", "Slip sheet", "Pallets", 75, 40, 24),
+            Item(14, "DUNN-BAG", "Dunnage air bags", "Protection", 320, 200, 16),
+            Item(15, "SEAL-MET", "Metal seals (10)", "Securing", 60, 30, 30),
+            Item(16, "GLOVE-M", "Work gloves M", "Safety", 45, 22, 35)
+        ];
+
+        dbContext.SupplyCatalogItems.AddRange(items);
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static SupplyCatalogItem Item(
+        int sort,
+        string sku,
+        string name,
+        string category,
+        long platformCents,
+        long wholesaleCents,
+        decimal marginSplit) =>
+        new()
+        {
+            Id = Guid.Parse($"d1000000-0000-0000-0000-0000000000{sort:D2}"),
+            Sku = sku,
+            Name = name,
+            Category = category,
+            PlatformPriceCents = platformCents,
+            WholesalePriceCents = wholesaleCents,
+            MarginSplitPercent = marginSplit,
+            SortOrder = sort,
+            IsActive = true
+        };
 }

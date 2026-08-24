@@ -12,4 +12,5 @@ public sealed record CreateOrderCommand(
     DateTimeOffset? ScheduledAt,
     string? DestinationCity,
     string? DestinationRegion,
-    string? PrimaryReference) : ICommand<Result<CreateOrderResponse>>;
+    string? PrimaryReference,
+    IReadOnlyList<CreateOrderSupplyLineRequest>? Supplies) : ICommand<Result<CreateOrderResponse>>;

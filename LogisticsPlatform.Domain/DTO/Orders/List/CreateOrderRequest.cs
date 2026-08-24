@@ -8,4 +8,5 @@ public sealed record CreateOrderRequest(
     DateTimeOffset? ScheduledAt,
     string? DestinationCity,
     string? DestinationRegion,
-    string? PrimaryReference);
+    string? PrimaryReference,
+    IReadOnlyList<CreateOrderSupplyLineRequest>? Supplies = null);
