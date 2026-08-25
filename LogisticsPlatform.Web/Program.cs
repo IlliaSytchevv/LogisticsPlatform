@@ -1,3 +1,4 @@
+using LogisticsPlatform.Middleware;
 using LogisticsPlatform.Infrastructure;
 using LogisticsPlatform.Swagger;
 
@@ -9,6 +10,9 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.ParameterFilter<DescriptionParameterFilter>();
 });
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddCors(options =>
 {
@@ -27,6 +31,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -39,3 +45,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Expose entry point for WebApplicationFactory in integration tests.
+public partial class Program;

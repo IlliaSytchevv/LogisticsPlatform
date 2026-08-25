@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.UseCases.Orders.CreateOrder;
@@ -23,7 +24,9 @@ public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dis
         [FromBody] CreateOrderRequest request,
         CancellationToken cancellationToken)
     {
-        string? userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        string? userIdValue =
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         if (!Guid.TryParse(userIdValue, out Guid createdByUserId))
             return Unauthorized();
 

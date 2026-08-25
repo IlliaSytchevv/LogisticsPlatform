@@ -16,7 +16,20 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
     public const string AccessTokenType = "access";
     public const string RefreshTokenType = "refresh";
 
+    /// <summary>
+    /// Keep long ClaimTypes.* names in the JWT so they match JwtBearer
+    /// (MapInboundClaims = false + RoleClaimType/NameClaimType = ClaimTypes.*).
+    /// </summary>
+    private static readonly JwtSecurityTokenHandler TokenHandler = CreateTokenHandler();
+
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+
+    private static JwtSecurityTokenHandler CreateTokenHandler()
+    {
+        var handler = new JwtSecurityTokenHandler();
+        handler.OutboundClaimTypeMap.Clear();
+        return handler;
+    }
 
     public string GenerateAccessToken(ApplicationUser user, IList<string> roles)
     {
@@ -59,8 +72,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            principal = handler.ValidateToken(refreshToken, ValidationParameters(), out _);
+            principal = TokenHandler.ValidateToken(refreshToken, ValidationParameters(), out _);
 
             string? typ = principal.Claims.FirstOrDefault(c => c.Type == TokenTypeClaim)?.Value
                 ?? principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Typ)?.Value;
@@ -102,7 +114,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
             expires: expiresUtc,
             signingCredentials: creds);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return TokenHandler.WriteToken(token);
     }
 
     private TokenValidationParameters ValidationParameters() =>
@@ -115,6 +127,8 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
             ValidIssuer = _jwtOptions.Issuer,
             ValidAudience = _jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
 }
