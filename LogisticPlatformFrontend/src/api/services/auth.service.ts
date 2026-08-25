@@ -1,6 +1,6 @@
 import type { LoginRequest, LoginResponse, RegisterRequest } from "@/types/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
 
 /**
  * Direct backend auth calls (used only if you bypass server actions).

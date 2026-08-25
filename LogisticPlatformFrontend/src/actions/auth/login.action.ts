@@ -16,7 +16,7 @@ import {
 import { parseAuthUser } from "@/lib/auth/token";
 import type { AuthUser } from "@/types/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
 
 export type LoginActionResult =
   | { ok: true; user: AuthUser | null }

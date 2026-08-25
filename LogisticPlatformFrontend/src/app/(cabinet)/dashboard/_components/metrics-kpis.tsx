@@ -25,7 +25,7 @@ export function MetricsKpis() {
     return (
       <p style={{ color: "#DC2626", fontSize: 13, marginBottom: 16 }}>
         Failed to load metrics{error instanceof Error ? `: ${error.message}` : ""}. Is API running on{" "}
-        {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217"}?
+        {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124"}?
       </p>
     );
   }

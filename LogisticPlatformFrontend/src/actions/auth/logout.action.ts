@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth/constants";
 import { buildCookieHeader } from "@/lib/auth/cookie-utils";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
 
 async function clearAuthCookies() {
   const jar = await cookies();

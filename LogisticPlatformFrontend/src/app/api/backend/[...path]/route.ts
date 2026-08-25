@@ -6,7 +6,7 @@ import {
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth/constants";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 

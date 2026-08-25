@@ -240,7 +240,7 @@ export default function OrdersPage() {
         <p style={{ color: "#DC2626", fontSize: 13 }}>
           Failed to load orders
           {listErr instanceof Error ? `: ${listErr.message}` : ""}. Is API running on{" "}
-          {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5217"}?
+          {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124"}?
         </p>
       ) : view === "table" ? (
         <OrdersTable items={items} />
