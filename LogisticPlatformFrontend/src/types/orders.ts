@@ -214,28 +214,18 @@ export type OrderDetails = {
 export type UpdateOrderRequest = {
   customerName?: string | null;
   primaryReference?: string | null;
-  hubId?: string | null;
-  scheduledAt?: string | null;
   declaredQty?: number | null;
   actualQty?: number | null;
   trailerType?: string | null;
-  carrierId?: string | null;
   phone?: string | null;
   truckNumber?: string | null;
   trailerNumber?: string | null;
   dockCode?: string | null;
   dockBay?: string | null;
-  dockAssignedAt?: string | null;
-  assignedToUserId?: string | null;
   warehouseNote?: string | null;
   stockStatusLabel?: string | null;
   loadingStatusLabel?: string | null;
-  services?: string[] | null;
-  quantityUnitLabel?: string | null;
-  dockStatusLabel?: string | null;
   status?: OrderStatus | null;
-  hasAlert?: boolean | null;
-  alertReason?: string | null;
 };
 
 export type AddOrderOperationRequest = {

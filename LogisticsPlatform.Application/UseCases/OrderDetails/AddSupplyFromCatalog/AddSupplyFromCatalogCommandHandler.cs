@@ -27,7 +27,6 @@ public sealed class AddSupplyFromCatalogCommandHandler(
         if (catalogItem is null)
             return Result<OrderSupplyResponse>.NotFound();
 
-        // Client path: always persist platform price only (WP / margin never stored on order line).
         OrderSupplyData data = await orderDetailsRepository.AddSupplyAsync(
             command.OrderId,
             catalogItem.Sku,

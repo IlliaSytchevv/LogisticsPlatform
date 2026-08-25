@@ -176,29 +176,21 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         if (order is null)
             return false;
 
-        if (patch.SetCustomerName) order.Cabinet.CustomerName = patch.CustomerName;
-        if (patch.SetPrimaryReference) order.Cabinet.PrimaryReference = patch.PrimaryReference;
-        if (patch.HubId.HasValue) order.HubId = patch.HubId.Value;
-        if (patch.ScheduledAt.HasValue) order.ScheduledAt = patch.ScheduledAt.Value;
-        if (patch.SetDeclaredQty) order.DeclaredQty = patch.DeclaredQty;
-        if (patch.SetActualQty) order.ActualQty = patch.ActualQty;
-        if (patch.SetTrailerType) order.Cabinet.TrailerType = patch.TrailerType;
-        if (patch.SetCarrierId) order.CarrierId = patch.CarrierId;
-        if (patch.SetPhone) order.Cabinet.Phone = patch.Phone;
-        if (patch.SetTruckNumber) order.Cabinet.TruckNumber = patch.TruckNumber;
-        if (patch.SetTrailerNumber) order.Cabinet.TrailerNumber = patch.TrailerNumber;
-        if (patch.SetDockCode) order.Dock.DockCode = patch.DockCode;
-        if (patch.SetDockBay) order.Dock.DockBay = patch.DockBay;
-        if (patch.SetDockAssignedAt) order.Dock.DockAssignedAt = patch.DockAssignedAt;
-        if (patch.SetAssignedToUserId) order.Dock.AssignedToUserId = patch.AssignedToUserId;
-        if (patch.SetWarehouseNote) order.Dock.WarehouseNote = patch.WarehouseNote;
-        if (patch.SetStockStatusLabel) order.Cabinet.StockStatusLabel = patch.StockStatusLabel;
-        if (patch.SetLoadingStatusLabel) order.Cabinet.LoadingStatusLabel = patch.LoadingStatusLabel;
-        if (patch.SetServicesCsv) order.Cabinet.ServicesCsv = patch.ServicesCsv;
-        if (patch.SetQuantityUnitLabel) order.Cabinet.QuantityUnitLabel = patch.QuantityUnitLabel;
-        if (patch.SetDockStatusLabel) order.Dock.DockStatusLabel = patch.DockStatusLabel;
+        if (patch.CustomerName is not null) order.Cabinet.CustomerName = patch.CustomerName;
+        if (patch.PrimaryReference is not null) order.Cabinet.PrimaryReference = patch.PrimaryReference;
+        if (patch.DeclaredQty is not null) order.DeclaredQty = patch.DeclaredQty;
+        if (patch.ActualQty is not null) order.ActualQty = patch.ActualQty;
+        if (patch.TrailerType is not null) order.Cabinet.TrailerType = patch.TrailerType;
+        if (patch.Phone is not null) order.Cabinet.Phone = patch.Phone;
+        if (patch.TruckNumber is not null) order.Cabinet.TruckNumber = patch.TruckNumber;
+        if (patch.TrailerNumber is not null) order.Cabinet.TrailerNumber = patch.TrailerNumber;
+        if (patch.DockCode is not null) order.Dock.DockCode = patch.DockCode;
+        if (patch.DockBay is not null) order.Dock.DockBay = patch.DockBay;
+        if (patch.WarehouseNote is not null) order.Dock.WarehouseNote = patch.WarehouseNote;
+        if (patch.StockStatusLabel is not null) order.Cabinet.StockStatusLabel = patch.StockStatusLabel;
+        if (patch.LoadingStatusLabel is not null) order.Cabinet.LoadingStatusLabel = patch.LoadingStatusLabel;
 
-        if (patch.Status.HasValue && patch.Status.Value != order.Status)
+        if (patch.Status is not null && patch.Status.Value != order.Status)
         {
             OrderStatus previous = order.Status;
             order.Status = patch.Status.Value;
@@ -212,9 +204,6 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
                 CreatedAt = DateTimeOffset.UtcNow
             });
         }
-
-        if (patch.HasAlert.HasValue) order.HasAlert = patch.HasAlert.Value;
-        if (patch.SetAlertReason) order.AlertReason = patch.AlertReason;
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return true;
@@ -692,6 +681,7 @@ public sealed class OrderDetailsRepository(AppDbContext dbContext) : IOrderDetai
         entity.IsDeleted = true;
         entity.DeletedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
+        
         return true;
     }
 }

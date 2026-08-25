@@ -49,8 +49,6 @@ export function EditOrderModal({ order, open, onClose }: Props) {
         stockStatusLabel: stockStatusLabel || null,
         loadingStatusLabel: loadingStatusLabel || null,
         status,
-        quantityUnitLabel: order.expected.unitLabel,
-        dockStatusLabel: order.assignedDock.statusLabel,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ordersKeys.detail(order.id) });

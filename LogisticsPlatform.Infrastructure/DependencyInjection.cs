@@ -90,7 +90,6 @@ public static class DependencyInjection
             })
             .AddJwtBearer(options =>
             {
-                // Keep ClaimTypes.Role so [Authorize(Roles = "Admin")] matches JWT role claims.
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
