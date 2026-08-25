@@ -1,5 +1,5 @@
 using LogisticsPlatform.Infrastructure.Database;
-using LogisticsPlatform.Infrastructure.Seed;
+using LogisticsPlatform.Infrastructure.Database.Seed;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

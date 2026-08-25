@@ -8,7 +8,9 @@ using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Options;
 using LogisticsPlatform.Infrastructure.Database;
 using LogisticsPlatform.Infrastructure.FileExport;
+using LogisticsPlatform.Infrastructure.Redis;
 using LogisticsPlatform.Infrastructure.Repositories;
+using LogisticsPlatform.Infrastructure.RepositoriesDecorator;
 using LogisticsPlatform.Infrastructure.Services;
 using LogisticsPlatform.Infrastructure.Wrappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,7 +18,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace LogisticsPlatform.Infrastructure;
 
@@ -28,6 +32,7 @@ public static class DependencyInjection
     {
         services.AddApplication();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.SectionName));
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
@@ -45,11 +50,25 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
+        RedisOptions redisOptions = configuration
+            .GetSection(RedisOptions.SectionName)
+            .Get<RedisOptions>()
+            ?? new RedisOptions();
+
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions.ConnectionString));
+        services.AddSingleton<IRedisService, RedisService>();
+        services.AddSingleton<INotificationsFeedCacheInvalidator, NotificationsFeedCacheInvalidator>();
+
         services.AddScoped<IUserManagerWrapper, UserManagerWrapper>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
-        services.AddScoped<INotificationsRepository, NotificationsRepository>();
+        services.AddScoped<NotificationsRepository>();
+        services.AddScoped<INotificationsRepository>(sp =>
+            new CachedNotificationsRepositoryDecorator(
+                sp.GetRequiredService<NotificationsRepository>(),
+                sp.GetRequiredService<IRedisService>(),
+                sp.GetRequiredService<ILogger<CachedNotificationsRepositoryDecorator>>()));
         services.AddScoped<ISupplyCatalogRepository, SupplyCatalogRepository>();
         services.AddScoped<IOrdersRepository, OrdersRepository>();
         services.AddScoped<IOrderDetailsRepository, OrderDetailsRepository>();

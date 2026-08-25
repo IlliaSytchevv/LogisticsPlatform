@@ -1,4 +1,4 @@
-using LogisticsPlatform.Infrastructure.Seed;
+using LogisticsPlatform.Infrastructure.Database.Seed;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace LogisticPlatform.IntegrationTests.Fixtures;

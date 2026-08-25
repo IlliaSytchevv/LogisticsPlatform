@@ -1,10 +1,9 @@
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
-using LogisticsPlatform.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace LogisticsPlatform.Infrastructure.Seed;
+namespace LogisticsPlatform.Infrastructure.Database.Seed;
 
 public static class SeedDemoDetails
 {

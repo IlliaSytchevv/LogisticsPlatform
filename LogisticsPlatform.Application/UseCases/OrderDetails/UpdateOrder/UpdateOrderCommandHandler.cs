@@ -2,12 +2,15 @@ using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
 using LogisticsPlatform.Application.Interfaces.Repositories;
+using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.UpdateOrder;
 
-public sealed class UpdateOrderCommandHandler(IOrderDetailsRepository orderDetailsRepository)
+public sealed class UpdateOrderCommandHandler(
+    IOrderDetailsRepository orderDetailsRepository,
+    INotificationsFeedCacheInvalidator notificationsFeedCacheInvalidator)
     : ICommandHandler<UpdateOrderCommand, Result<UpdateOrderResponse>>
 {
     public async Task<Result<UpdateOrderResponse>> Handle(
@@ -64,6 +67,8 @@ public sealed class UpdateOrderCommandHandler(IOrderDetailsRepository orderDetai
         bool updated = await orderDetailsRepository.PatchOrderAsync(patch, cancellationToken);
         if (!updated)
             return Result<UpdateOrderResponse>.NotFound();
+
+        await notificationsFeedCacheInvalidator.InvalidateAsync(cancellationToken);
 
         return Result.Success(new UpdateOrderResponse(command.OrderId));
     }
