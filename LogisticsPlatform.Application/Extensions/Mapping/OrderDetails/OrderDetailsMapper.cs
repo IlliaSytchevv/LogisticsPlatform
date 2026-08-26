@@ -65,7 +65,8 @@ public static class OrderDetailsMapper
                     .ToList()),
             data.Operations.Select(ToResponse).ToList(),
             data.Supplies.Select(ToResponse).ToList(),
-            data.Supplies.Sum(s => s.LineTotalCents));
+            data.Supplies.Sum(s => s.LineTotalCents),
+            data.IsPaid);
     }
 
     public static OrderOperationResponse ToResponse(OrderOperationData data) =>

@@ -5,6 +5,7 @@ import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@/types/auth";
 import { mediaUrl, ordersService } from "@/api/services/orders.service";
+import { paymentsService } from "@/api/services/payments.service";
 import {
   orderCommentsOptions,
   orderDetailOptions,
@@ -42,6 +43,8 @@ export default function OrderDetailPage({
   const [editOpen, setEditOpen] = useState(false);
   const [docBusy, setDocBusy] = useState<"bol" | "qr" | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
+  const [payBusy, setPayBusy] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
 
   const {
     data: order,
@@ -105,6 +108,45 @@ export default function OrderDetailPage({
       setDocError(err instanceof Error ? err.message : "QR download failed");
     } finally {
       setDocBusy(null);
+    }
+  };
+
+  const conflictMessage = (err: unknown, fallback: string) => {
+    if (!(err instanceof ApiError) || err.status !== 409) return null;
+    const body = err.body;
+    if (Array.isArray(body) && typeof body[0] === "string" && body[0]) return body[0];
+    if (typeof body === "string" && body) return body;
+    return fallback;
+  };
+
+  const startCheckout = async () => {
+    setDocError(null);
+    setPayBusy(true);
+    try {
+      const { checkoutUrl } = await paymentsService.createCheckout(order.id);
+      window.location.assign(checkoutUrl);
+    } catch (err) {
+      setDocError(
+        conflictMessage(err, "Payment already in progress for this order.") ??
+          (err instanceof Error ? err.message : "Checkout failed"),
+      );
+      setPayBusy(false);
+    }
+  };
+
+  const openEdit = async () => {
+    setDocError(null);
+    setEditBusy(true);
+    try {
+      await ordersService.acquireEditLock(order.id);
+      setEditOpen(true);
+    } catch (err) {
+      setDocError(
+        conflictMessage(err, "Someone else is editing this order.") ??
+          (err instanceof Error ? err.message : "Could not open editor"),
+      );
+    } finally {
+      setEditBusy(false);
     }
   };
 
@@ -176,6 +218,23 @@ export default function OrderDetailPage({
         )}
       </div>
 
+      {docError && (
+        <div
+          style={{
+            margin: "0 0 10px",
+            padding: "8px 12px",
+            borderRadius: 6,
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#B91C1C",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {docError}
+        </div>
+      )}
+
       <div className="xd-actions no-print">
         <button
           type="button"
@@ -193,9 +252,24 @@ export default function OrderDetailPage({
         >
           📷 <span style={{ color: "#9CA3AF" }}>{photos.length}</span>
         </button>
-        <button type="button" className="btn btn-secondary" style={{ padding: "7px 12px", fontSize: 12 }} title="Billing">
-          $
-        </button>
+        {order.type === 1 && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{
+              padding: "7px 12px",
+              fontSize: 12,
+              ...(order.isPaid
+                ? { color: "#9CA3AF", borderColor: "#D1D5DB", background: "#F3F4F6", cursor: "not-allowed" }
+                : {}),
+            }}
+            title={order.isPaid ? "Already paid" : "Pay supplies"}
+            disabled={payBusy || order.isPaid}
+            onClick={startCheckout}
+          >
+            {payBusy ? "…" : "$"}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-secondary"
@@ -222,8 +296,29 @@ export default function OrderDetailPage({
         >
           🕘
         </button>
+        {order.type === 1 && (
+          <span
+            title={order.isPaid ? "Supplies paid" : "Supplies not paid"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 56,
+              height: 30,
+              padding: "0 8px",
+              borderRadius: 6,
+              border: `1px solid ${order.isPaid ? "#86EFAC" : "#E5E7EB"}`,
+              background: order.isPaid ? "#DCFCE7" : "#F3F4F6",
+              color: order.isPaid ? "#166534" : "#6B7280",
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: 1,
+            }}
+          >
+            {order.isPaid ? "Paid" : "Unpaid"}
+          </span>
+        )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          {docError && <span style={{ color: "#DC2626", fontSize: 11 }}>{docError}</span>}
           <button
             type="button"
             className="btn btn-secondary"
@@ -246,9 +341,10 @@ export default function OrderDetailPage({
             type="button"
             className="btn btn-primary"
             style={{ padding: "7px 14px", fontSize: 12 }}
-            onClick={() => setEditOpen(true)}
+            disabled={editBusy}
+            onClick={openEdit}
           >
-            ✏️ Edit
+            {editBusy ? "…" : "✏️ Edit"}
           </button>
         </div>
       </div>

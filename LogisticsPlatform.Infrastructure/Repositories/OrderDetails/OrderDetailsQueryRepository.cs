@@ -1,5 +1,6 @@
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
+using LogisticsPlatform.Domain.Enums;
 using LogisticsPlatform.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -102,6 +103,12 @@ public sealed class OrderDetailsQueryRepository(AppDbContext dbContext) : IOrder
                 x.LineTotalCents))
             .ToListAsync(cancellationToken);
 
+        bool isPaid = await dbContext.OrderPayments
+            .AsNoTracking()
+            .AnyAsync(
+                p => p.OrderId == orderId && p.Status == OrderPaymentStatus.Paid,
+                cancellationToken);
+
         return new OrderDetailsData(
             order.Id, order.Number,
             order.Type, order.Status,
@@ -119,6 +126,6 @@ public sealed class OrderDetailsQueryRepository(AppDbContext dbContext) : IOrder
             order.DockStatusLabel, order.DeclaredQty,
             order.ActualQty, order.QuantityUnitLabel,
             order.WarehouseNote, hubDocks,
-            photos, operations, supplies);
+            photos, operations, supplies, isPaid);
     }
 }

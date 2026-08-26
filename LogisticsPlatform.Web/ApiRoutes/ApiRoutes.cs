@@ -11,4 +11,5 @@ internal static class ApiRoutes
     public const string Seed = $"{V1}/seed";
     public const string Orders = $"{V1}/orders";
     public const string Order = $"{Orders}/{{orderId:guid}}";
+    public const string Payments = $"{V1}/payments";
 }

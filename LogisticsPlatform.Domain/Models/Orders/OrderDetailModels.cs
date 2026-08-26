@@ -129,7 +129,8 @@ public sealed record OrderDetailsData(
     IReadOnlyList<OrderHubDockData> HubDocks,
     IReadOnlyList<OrderWarehousePhotoData> WarehousePhotos,
     IReadOnlyList<OrderOperationData> Operations,
-    IReadOnlyList<OrderSupplyData> Supplies);
+    IReadOnlyList<OrderSupplyData> Supplies,
+    bool IsPaid);
 
 public sealed record OrderDocumentData(
     Guid Id,

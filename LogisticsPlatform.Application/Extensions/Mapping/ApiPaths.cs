@@ -1,4 +1,4 @@
-namespace LogisticsPlatform.Application;
+namespace LogisticsPlatform.Application.Extensions.Mapping;
 
 public static class ApiPaths
 {

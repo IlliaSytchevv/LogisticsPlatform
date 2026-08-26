@@ -91,9 +91,6 @@ export function FreittyShell({
         <div className="fc-topbar">
           <GlobalOrderSearch placeholder={searchPlaceholder} />
           <div className="spacer" />
-          <div className="fc-balance" title="Поточний баланс · клік → Billing">
-            💳 $1 <span className="topup">Top up →</span>
-          </div>
           <div style={{ position: "relative" }}>
             <button
               type="button"

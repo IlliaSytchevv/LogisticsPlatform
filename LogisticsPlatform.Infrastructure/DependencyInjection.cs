@@ -13,6 +13,7 @@ using LogisticsPlatform.Infrastructure.Repositories;
 using LogisticsPlatform.Infrastructure.Repositories.OrderDetails;
 using LogisticsPlatform.Infrastructure.RepositoriesDecorator;
 using LogisticsPlatform.Infrastructure.Services;
+using LogisticsPlatform.Infrastructure.Stripe;
 using LogisticsPlatform.Infrastructure.Wrappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +22,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 
 namespace LogisticsPlatform.Infrastructure;
@@ -35,6 +38,7 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.SectionName));
         services.Configure<PhotoStorageOptions>(configuration.GetSection(PhotoStorageOptions.SectionName));
+        services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
@@ -58,7 +62,16 @@ public static class DependencyInjection
             ?? new RedisOptions();
 
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions.ConnectionString));
+        services.AddSingleton<RedLockFactory>(sp =>
+        {
+            var multiplexer = (ConnectionMultiplexer)sp.GetRequiredService<IConnectionMultiplexer>();
+            var multiplexers = new List<RedLockMultiplexer> { new(multiplexer) };
+            return RedLockFactory.Create(multiplexers);
+        });
         services.AddSingleton<IRedisService, RedisService>();
+        services.AddSingleton<IRedisLock, RedisLock>();
+        services.AddSingleton<IOrderEditLock, OrderEditLock>();
+        services.AddSingleton<IOrderCheckoutLock, OrderCheckoutLock>();
         services.AddSingleton<INotificationsFeedCacheInvalidator, NotificationsFeedCacheInvalidator>();
 
         services.AddSingleton<IPhotoBlobStore, LocalPhotoBlobStore>();
@@ -83,6 +96,8 @@ public static class DependencyInjection
         services.AddScoped<IOrderWarehousePhotosRepository, OrderWarehousePhotosRepository>();
         services.AddScoped<IOrderCommentsRepository, OrderCommentsRepository>();
         services.AddScoped<IOrderTimelineRepository, OrderTimelineRepository>();
+        services.AddScoped<IOrderPaymentsRepository, OrderPaymentsRepository>();
+        services.AddScoped<IStripeCheckoutService, StripeCheckoutService>();
         services.AddScoped<IFileWriter, CsvExportWriter>();
         services.AddScoped<IOrdersExportSource, OrdersExportBatchReader>();
         services.AddScoped<IOrderBolPdfService, OrderBolPdfService>();

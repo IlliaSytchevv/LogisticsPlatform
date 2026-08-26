@@ -13,6 +13,12 @@ public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
     protected string? GetCurrentUserDisplayName() =>
         User.FindFirstValue(ClaimTypes.Name);
 
+    protected bool TryGetCurrentUserId(out Guid userId)
+    {
+        string? raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(raw, out userId);
+    }
+
     protected IActionResult GetActionResult(Result result) =>
         MapStatus(
             result.Status,

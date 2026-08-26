@@ -208,6 +208,7 @@ export type OrderDetails = {
   operations: OrderOperation[];
   supplies: OrderSupply[];
   suppliesSubtotalCents: number;
+  isPaid: boolean;
 };
 
 export type UpdateOrderRequest = {

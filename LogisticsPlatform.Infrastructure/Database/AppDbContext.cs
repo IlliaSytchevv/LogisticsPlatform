@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<HubDock> HubDocks { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<SupplyCatalogItem> SupplyCatalogItems { get; set; }
+    public DbSet<OrderPayment> OrderPayments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

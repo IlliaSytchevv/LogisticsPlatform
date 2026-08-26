@@ -256,26 +256,6 @@ select {
   color: #2e75b6;
 }
 
-.fc-balance {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #b8142a;
-  cursor: pointer;
-  margin-right: 4px;
-}
-.fc-balance .topup {
-  font-size: 10px;
-  font-weight: 600;
-  color: #dc2626;
-}
-
 /* ---- Buttons ---- */
 .btn {
   padding: 8px 16px;

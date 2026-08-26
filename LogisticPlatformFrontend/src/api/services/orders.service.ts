@@ -118,6 +118,18 @@ class OrdersService extends BaseService {
     return this.patch<{ id: string }>(`${ordersApi}/${id}`, payload);
   }
 
+  acquireEditLock(orderId: string) {
+    return this.post<void>(`${ordersApi}/${orderId}/edit-lock`);
+  }
+
+  heartbeatEditLock(orderId: string) {
+    return this.post<void>(`${ordersApi}/${orderId}/edit-lock/heartbeat`);
+  }
+
+  releaseEditLock(orderId: string) {
+    return this.delete<void>(`${ordersApi}/${orderId}/release-edit-lock`);
+  }
+
   async exportCsv(params: Omit<OrdersListParams, "page" | "pageSize"> = {}) {
     await downloadFile(`${ordersApi}/export${toQuery(params)}`);
   }

@@ -35,4 +35,5 @@ public sealed record OrderDetailsResponse(
     OrderWarehouseNoteResponse WarehouseNote,
     IReadOnlyList<OrderOperationResponse> Operations,
     IReadOnlyList<OrderSupplyResponse> Supplies,
-    long SuppliesSubtotalCents);
+    long SuppliesSubtotalCents,
+    bool IsPaid);

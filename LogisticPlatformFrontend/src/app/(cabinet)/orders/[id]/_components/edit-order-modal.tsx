@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { OrderDetails, OrderStatus } from "@/types/orders";
 import { ordersService } from "@/api/services/orders.service";
@@ -13,6 +13,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
 };
+
+const HEARTBEAT_MS = 15_000;
 
 export function EditOrderModal({ order, open, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -31,6 +33,35 @@ export function EditOrderModal({ order, open, onClose }: Props) {
   const [loadingStatusLabel, setLoadingStatusLabel] = useState(order.loadingStatusLabel ?? "");
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const tick = () => {
+      void ordersService.heartbeatEditLock(order.id).catch(() => {
+        setError("Edit lock was lost. Close and try again.");
+      });
+    };
+
+    const id = window.setInterval(tick, HEARTBEAT_MS);
+
+    // Do NOT release in this cleanup — React Strict Mode remounts and would drop the lock.
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [open, order.id]);
+
+  useEffect(() => {
+    const onPageHide = () => {
+      void ordersService.releaseEditLock(order.id).catch(() => undefined);
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [order.id]);
+
+  const closeAndRelease = () => {
+    void ordersService.releaseEditLock(order.id).finally(() => onClose());
+  };
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -53,7 +84,7 @@ export function EditOrderModal({ order, open, onClose }: Props) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ordersKeys.detail(order.id) });
       await queryClient.invalidateQueries({ queryKey: ordersKeys.all });
-      onClose();
+      closeAndRelease();
     },
     onError: (err) => setError(err instanceof Error ? err.message : "Save failed"),
   });
@@ -66,7 +97,7 @@ export function EditOrderModal({ order, open, onClose }: Props) {
   );
 
   return (
-    <DetailModal open={open} title={`Edit ${order.number}`} onClose={onClose} width={520}>
+    <DetailModal open={open} title={`Edit ${order.number}`} onClose={closeAndRelease} width={520}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {field(
           "Customer",
@@ -89,16 +120,12 @@ export function EditOrderModal({ order, open, onClose }: Props) {
           <input value={trailerType} onChange={(e) => setTrailerType(e.target.value)} style={{ width: "100%" }} />,
         )}
         {field(
-          "Truck",
+          "Truck #",
           <input value={truckNumber} onChange={(e) => setTruckNumber(e.target.value)} style={{ width: "100%" }} />,
         )}
         {field(
-          "Trailer",
-          <input
-            value={trailerNumber}
-            onChange={(e) => setTrailerNumber(e.target.value)}
-            style={{ width: "100%" }}
-          />,
+          "Trailer #",
+          <input value={trailerNumber} onChange={(e) => setTrailerNumber(e.target.value)} style={{ width: "100%" }} />,
         )}
         {field(
           "Dock code",
@@ -110,21 +137,11 @@ export function EditOrderModal({ order, open, onClose }: Props) {
         )}
         {field(
           "Declared qty",
-          <input
-            type="number"
-            value={declaredQty}
-            onChange={(e) => setDeclaredQty(e.target.value)}
-            style={{ width: "100%" }}
-          />,
+          <input value={declaredQty} onChange={(e) => setDeclaredQty(e.target.value)} style={{ width: "100%" }} />,
         )}
         {field(
           "Actual qty",
-          <input
-            type="number"
-            value={actualQty}
-            onChange={(e) => setActualQty(e.target.value)}
-            style={{ width: "100%" }}
-          />,
+          <input value={actualQty} onChange={(e) => setActualQty(e.target.value)} style={{ width: "100%" }} />,
         )}
         {field(
           "Stock status",
