@@ -1,7 +1,7 @@
 using Ardalis.Result;
+using LogisticsPlatform.Application.DTO.Authorization;
 using LogisticsPlatform.Application.Interfaces.Wrappers;
 using LogisticsPlatform.Application.UseCases.Auth.Register;
-using LogisticsPlatform.Domain.DTO.Authorization;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using Microsoft.AspNetCore.Identity;

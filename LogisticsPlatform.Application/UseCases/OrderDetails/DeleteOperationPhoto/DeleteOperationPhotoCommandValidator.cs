@@ -6,8 +6,13 @@ public sealed class DeleteOperationPhotoCommandValidator : AbstractValidator<Del
 {
     public DeleteOperationPhotoCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.OperationId).NotEmpty();
-        RuleFor(x => x.PhotoId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.OperationId)
+            .NotEmpty();
+        
+        RuleFor(x => x.PhotoId)
+            .NotEmpty();
     }
 }

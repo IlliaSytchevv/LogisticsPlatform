@@ -131,13 +131,14 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DriverUserId");
 
-                    b.ToTable("Carriers");
+                    b.ToTable("Carriers", (string)null);
                 });
 
             modelBuilder.Entity("LogisticsPlatform.Domain.Entities.Hub", b =>
@@ -148,14 +149,16 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("RegionCode")
-                        .HasColumnType("text");
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Hubs");
+                    b.ToTable("Hubs", (string)null);
                 });
 
             modelBuilder.Entity("LogisticsPlatform.Domain.Entities.HubDock", b =>
@@ -233,7 +236,8 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.Property<string>("Number")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTimeOffset>("ScheduledAt")
                         .HasColumnType("timestamp with time zone");
@@ -256,7 +260,29 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("HubId");
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Orders_Number");
+
+                    b.HasIndex("HasAlert", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Orders_HasAlert_CreatedAt");
+
+                    b.HasIndex("HubId", "ScheduledAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Orders_HubId_ScheduledAt");
+
+                    b.HasIndex("Status", "CompletedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Orders_Status_CompletedAt");
+
+                    b.HasIndex("Status", "ScheduledAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Orders_Status_ScheduledAt");
+
+                    b.HasIndex("Type", "Status", "HasAlert", "ScheduledAt")
+                        .IsDescending(false, false, false, true)
+                        .HasDatabaseName("IX_Orders_Type_Status_HasAlert_ScheduledAt");
 
                     b.ToTable("Orders", (string)null);
                 });
@@ -285,6 +311,9 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderId", "CreatedAt")
+                        .HasDatabaseName("IX_OrderComments_OrderId_CreatedAt");
 
                     b.ToTable("OrderComments", (string)null);
                 });
@@ -332,6 +361,9 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("OrderId", "IsDeleted")
+                        .HasDatabaseName("IX_OrderOperations_OrderId_IsDeleted");
+
                     b.ToTable("OrderOperations", (string)null);
                 });
 
@@ -360,6 +392,9 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("OperationId");
 
+                    b.HasIndex("OperationId", "CreatedAt")
+                        .HasDatabaseName("IX_OrderOperationComments_OperationId_CreatedAt");
+
                     b.ToTable("OrderOperationComments", (string)null);
                 });
 
@@ -368,10 +403,6 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<byte[]>("Content")
-                        .IsRequired()
-                        .HasColumnType("bytea");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
@@ -392,12 +423,21 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.Property<Guid>("OperationId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OperationId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrderOperationPhotos_StorageKey");
+
+                    b.HasIndex("OperationId", "IsDeleted")
+                        .HasDatabaseName("IX_OrderOperationPhotos_OperationId_IsDeleted");
 
                     b.ToTable("OrderOperationPhotos", (string)null);
                 });
@@ -467,6 +507,9 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("OrderId", "IsDeleted")
+                        .HasDatabaseName("IX_OrderSupplies_OrderId_IsDeleted");
+
                     b.ToTable("OrderSupplies", (string)null);
                 });
 
@@ -488,8 +531,14 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<int?>("NewStatus")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("PreviousStatus")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -500,6 +549,10 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("OrderId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_OrderTimelineEntries_OrderId_CreatedAt");
+
                     b.ToTable("OrderTimelineEntries", (string)null);
                 });
 
@@ -508,10 +561,6 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<byte[]>("Content")
-                        .IsRequired()
-                        .HasColumnType("bytea");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
@@ -532,12 +581,21 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrderWarehousePhotos_StorageKey");
+
+                    b.HasIndex("OrderId", "IsDeleted")
+                        .HasDatabaseName("IX_OrderWarehousePhotos_OrderId_IsDeleted");
 
                     b.ToTable("OrderWarehousePhotos", (string)null);
                 });
@@ -593,7 +651,8 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.Property<string>("Number")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid");
@@ -603,7 +662,8 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.Property<string>("Reference")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -612,7 +672,7 @@ namespace LogisticsPlatform.Infrastructure.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("SubOrders");
+                    b.ToTable("SubOrders", (string)null);
                 });
 
             modelBuilder.Entity("LogisticsPlatform.Domain.Entities.SupplyCatalogItem", b =>
@@ -657,7 +717,8 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                     b.HasIndex("Sku")
                         .IsUnique();
 
-                    b.HasIndex("SortOrder");
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("IX_SupplyCatalogItems_IsActive_SortOrder");
 
                     b.ToTable("SupplyCatalogItems", (string)null);
                 });
@@ -973,6 +1034,9 @@ namespace LogisticsPlatform.Infrastructure.Migrations
                                 .HasColumnName("NextActionLabel");
 
                             b1.HasKey("OrderId");
+
+                            b1.HasIndex("AwaitingClientAction")
+                                .HasDatabaseName("IX_Orders_AwaitingClientAction");
 
                             b1.ToTable("Orders");
 

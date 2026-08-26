@@ -1,5 +1,7 @@
+using LogisticsPlatform.Application;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
+using LogisticsPlatform.Application.Services;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
@@ -20,7 +22,7 @@ public static class OrderDetailsMapper
             data.Type,
             FormatType(data.Type),
             data.Status,
-            FormatStatus(data.Status),
+            OrderStatusLabels.Format(data.Status),
             data.PrimaryReference,
             data.CustomerName,
             data.Phone,
@@ -94,16 +96,14 @@ public static class OrderDetailsMapper
             data.Id,
             data.FileName,
             data.ContentType,
-            data.SortOrder,
-            $"/api/orders/{data.OrderId}/warehouse-photos/{data.Id}");
+            $"{ApiPaths.V1Orders}/{data.OrderId}/warehouse-photos/{data.Id}");
 
     public static OrderOperationPhotoResponse ToResponse(OrderOperationPhotoData data) =>
         new(
             data.Id,
             data.FileName,
             data.ContentType,
-            data.SortOrder,
-            $"/api/orders/{data.OrderId}/operations/{data.OperationId}/photos/{data.Id}");
+            $"{ApiPaths.V1Orders}/{data.OrderId}/operations/{data.OperationId}/photos/{data.Id}");
 
     public static OrderCommentResponse ToResponse(OrderCommentData data) =>
         new(data.Id, data.Text, data.AuthorName, data.CreatedAt);
@@ -112,7 +112,18 @@ public static class OrderDetailsMapper
         new(data.Id, data.Text, data.AuthorName, data.CreatedAt);
 
     public static OrderTimelineEntryResponse ToResponse(OrderTimelineEntryData data) =>
-        new(data.Id, data.Kind, data.Text, data.AuthorName, data.CreatedAt);
+        new(data.Id, data.Kind, ResolveTimelineText(data), data.AuthorName, data.CreatedAt);
+
+    private static string ResolveTimelineText(OrderTimelineEntryData data)
+    {
+        if (string.Equals(data.Kind, "Status", StringComparison.OrdinalIgnoreCase)
+            && data.NewStatus is { } newStatus)
+        {
+            return OrderStatusLabels.FormatTransition(data.PreviousStatus, newStatus);
+        }
+
+        return data.Text;
+    }
 
     private static string FormatOperationType(OrderOperationType type) => type switch
     {
@@ -130,16 +141,7 @@ public static class OrderDetailsMapper
         _ => type.ToString().ToUpperInvariant()
     };
 
-    public static string FormatStatus(OrderStatus status) => status switch
-    {
-        OrderStatus.InProgress => "IN PROGRESS",
-        OrderStatus.New => "NEW",
-        OrderStatus.Alert => "ALERT",
-        OrderStatus.Completed => "DONE",
-        OrderStatus.Closed => "CLOSED",
-        OrderStatus.Draft => "DRAFT",
-        _ => status.ToString().ToUpperInvariant()
-    };
+    public static string FormatStatus(OrderStatus status) => OrderStatusLabels.Format(status);
 
     public static string? ToServicesCsv(IReadOnlyList<string>? services) =>
         services is { Count: > 0 }

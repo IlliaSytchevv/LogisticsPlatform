@@ -1,9 +1,9 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Supplies;
 using LogisticsPlatform.Application.Extensions.Mapping.Supplies;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Supplies;
-using LogisticsPlatform.Domain.DTO.Supplies;
 
 namespace LogisticsPlatform.Application.UseCases.Supplies.GetCatalog;
 

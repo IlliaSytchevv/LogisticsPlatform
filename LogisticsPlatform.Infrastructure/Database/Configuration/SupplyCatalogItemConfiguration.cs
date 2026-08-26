@@ -17,6 +17,7 @@ public sealed class SupplyCatalogItemConfiguration : IEntityTypeConfiguration<Su
         builder.Property(x => x.MarginSplitPercent).HasPrecision(5, 2);
 
         builder.HasIndex(x => x.Sku).IsUnique();
-        builder.HasIndex(x => x.SortOrder);
+        builder.HasIndex(x => new { x.IsActive, x.SortOrder })
+            .HasDatabaseName("IX_SupplyCatalogItems_IsActive_SortOrder");
     }
 }

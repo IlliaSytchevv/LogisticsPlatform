@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Orders.List;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.List;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Orders;

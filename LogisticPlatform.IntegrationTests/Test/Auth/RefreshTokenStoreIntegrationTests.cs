@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using LogisticPlatform.IntegrationTests.Fixtures;
 using LogisticPlatform.IntegrationTests.Helpers;
+using LogisticsPlatform.Application.DTO.Authorization;
 using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Infrastructure.Database;
@@ -159,8 +160,8 @@ public sealed class RefreshTokenStoreIntegrationTests(LogisticsApiFixture fixtur
         });
 
         HttpResponseMessage loginResponse = await client.PostAsJsonAsync(
-            "/api/auth/login",
-            new LogisticsPlatform.Domain.DTO.Authorization.LoginRequest("testuser", "Test123!"));
+            "/api/v1/auth/login",
+            new LoginRequest("testuser", "Test123!"));
         loginResponse.EnsureSuccessStatusCode();
 
         await using AsyncServiceScope scope = fixture.Factory.Services.CreateAsyncScope();
@@ -173,7 +174,7 @@ public sealed class RefreshTokenStoreIntegrationTests(LogisticsApiFixture fixtur
             .FirstAsync();
 
         // Act
-        HttpResponseMessage refreshResponse = await client.PostAsync("/api/auth/refresh-token", content: null);
+        HttpResponseMessage refreshResponse = await client.PostAsync("/api/v1/auth/refresh-token", content: null);
 
         // Assert
         refreshResponse.EnsureSuccessStatusCode();

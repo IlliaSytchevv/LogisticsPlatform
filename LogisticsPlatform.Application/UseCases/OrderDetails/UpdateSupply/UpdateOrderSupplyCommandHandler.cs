@@ -1,20 +1,20 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.UpdateSupply;
 
-public sealed class UpdateOrderSupplyCommandHandler(IOrderDetailsRepository orderDetailsRepository)
+public sealed class UpdateOrderSupplyCommandHandler(IOrderSuppliesRepository orderSuppliesRepository)
     : ICommandHandler<UpdateOrderSupplyCommand, Result<OrderSupplyResponse>>
 {
     public async Task<Result<OrderSupplyResponse>> Handle(
         UpdateOrderSupplyCommand command,
         CancellationToken cancellationToken)
     {
-        OrderSupplyData? data = await orderDetailsRepository.UpdateSupplyAsync(
+        OrderSupplyData? data = await orderSuppliesRepository.UpdateSupplyAsync(
             command.OrderId,
             command.SupplyId,
             command.Sku,

@@ -13,6 +13,8 @@ public sealed class OrderTimelineEntryConfiguration : IEntityTypeConfiguration<O
 
         builder.Property(x => x.Kind).HasMaxLength(32).IsRequired();
         builder.Property(x => x.Text).HasMaxLength(2000).IsRequired();
+        builder.Property(x => x.PreviousStatus);
+        builder.Property(x => x.NewStatus);
         builder.Property(x => x.AuthorName).HasMaxLength(128);
 
         builder.HasOne(x => x.Order)
@@ -21,5 +23,8 @@ public sealed class OrderTimelineEntryConfiguration : IEntityTypeConfiguration<O
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.OrderId);
+        builder.HasIndex(x => new { x.OrderId, x.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_OrderTimelineEntries_OrderId_CreatedAt");
     }
 }

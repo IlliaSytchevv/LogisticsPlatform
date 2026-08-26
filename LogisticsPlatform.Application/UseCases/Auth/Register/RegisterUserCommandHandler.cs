@@ -1,7 +1,7 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Authorization;
 using LogisticsPlatform.Application.Interfaces.Wrappers;
-using LogisticsPlatform.Domain.DTO.Authorization;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using Microsoft.Extensions.Logging;

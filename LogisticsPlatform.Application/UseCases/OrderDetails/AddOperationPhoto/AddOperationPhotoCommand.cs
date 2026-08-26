@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationPhoto;
 
@@ -9,5 +9,4 @@ public sealed record AddOperationPhotoCommand(
     Guid OperationId,
     string FileName,
     string ContentType,
-    byte[] Content,
-    int? SortOrder) : ICommand<Result<OrderOperationPhotoResponse>>;
+    byte[] Content) : ICommand<Result<OrderOperationPhotoResponse>>;

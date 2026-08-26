@@ -32,10 +32,7 @@ export function OperationCommentsPanel({
 
   const addMutation = useMutation({
     mutationFn: () =>
-      ordersService.addOperationComment(orderId, operationId, {
-        text,
-        authorName: "You",
-      }),
+      ordersService.addOperationComment(orderId, operationId, { text }),
     onSuccess: async () => {
       setText("");
       await queryClient.invalidateQueries({

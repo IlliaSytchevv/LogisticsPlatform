@@ -6,7 +6,10 @@ public sealed class GetOperationCommentsQueryValidator : AbstractValidator<GetOp
 {
     public GetOperationCommentsQueryValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.OperationId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.OperationId)
+            .NotEmpty();
     }
 }

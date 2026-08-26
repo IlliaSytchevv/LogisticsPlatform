@@ -7,8 +7,8 @@ import {
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth/constants";
 import { buildCookieHeader } from "@/lib/auth/cookie-utils";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
+import { apiV1 } from "@/lib/api/routes";
+import { API_BASE_URL } from "@/lib/api/base-url";
 
 async function clearAuthCookies() {
   const jar = await cookies();
@@ -22,7 +22,7 @@ export async function logoutAction() {
 
   try {
     if (refresh) {
-      await fetch(`${API_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}${apiV1("/auth/logout")}`, {
         method: "POST",
         headers: {
           Cookie: buildCookieHeader({ [BACKEND_REFRESH_COOKIE]: refresh }),

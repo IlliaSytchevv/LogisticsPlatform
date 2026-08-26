@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Notifications;
+using LogisticsPlatform.Application.DTO.Notifications;
 
 namespace LogisticsPlatform.Application.UseCases.Notifications.GetFeed;
 

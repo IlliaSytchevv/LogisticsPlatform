@@ -8,7 +8,7 @@ import {
 import { buildCookieHeader } from "@/lib/auth/cookie-utils";
 import { ApiError } from "@/types/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
+import { API_BASE_URL } from "@/lib/api/base-url";
 
 type ServerFetcherOptions = RequestInit & {
   skipAuth?: boolean;
@@ -36,7 +36,7 @@ export async function serverFetcher<T>(
   const { skipAuth, skipRefresh, headers, ...init } = options;
 
   const access = skipAuth ? null : await readAccessToken();
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
@@ -87,7 +87,7 @@ export async function serverFetchRaw(
   options: { skipRefresh?: boolean } = {},
 ): Promise<Response> {
   const access = await readAccessToken();
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(access ? { Authorization: `Bearer ${access}` } : {}),

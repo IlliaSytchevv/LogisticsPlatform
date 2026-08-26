@@ -43,14 +43,13 @@ public sealed record OrderOperationPhotoData(
     Guid OrderId,
     Guid OperationId,
     string FileName,
-    string ContentType,
-    int SortOrder);
+    string ContentType);
 
 public sealed record OrderOperationPhotoContentData(
     Guid Id,
     string FileName,
     string ContentType,
-    byte[] Content);
+    string StorageKey);
 
 public sealed record OrderSupplyData(
     Guid Id,
@@ -66,14 +65,13 @@ public sealed record OrderWarehousePhotoData(
     Guid Id,
     Guid OrderId,
     string FileName,
-    string ContentType,
-    int SortOrder);
+    string ContentType);
 
 public sealed record OrderWarehousePhotoContentData(
     Guid Id,
     string FileName,
     string ContentType,
-    byte[] Content);
+    string StorageKey);
 
 public sealed record OrderCommentData(
     Guid Id,
@@ -88,7 +86,9 @@ public sealed record OrderTimelineEntryData(
     string Kind,
     string Text,
     string? AuthorName,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    OrderStatus? PreviousStatus,
+    OrderStatus? NewStatus);
 
 public sealed record OrderHubDockData(
     string Code,

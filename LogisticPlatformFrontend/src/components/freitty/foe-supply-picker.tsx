@@ -30,7 +30,7 @@ export function FoeSupplyPicker({ items, picks, onChange, loading, error }: Prop
       <p style={{ fontSize: 12, color: "#DC2626", lineHeight: 1.45 }}>
         Cannot load FOE catalog: {error}
         <br />
-        Check <code>GET /api/supplies/catalog</code> in Swagger and that table{" "}
+        Check <code>GET /api/v1/supplies/catalog</code> in Swagger and that table{" "}
         <code>SupplyCatalogItems</code> exists (migration applied).
       </p>
     );
@@ -43,7 +43,7 @@ export function FoeSupplyPicker({ items, picks, onChange, loading, error }: Prop
         <br />
         1) Apply migration so <code>SupplyCatalogItems</code> exists
         <br />
-        2) Run <code>POST /api/seed</code> again (inserts 16 SKUs only if table is empty)
+        2) Run <code>POST /api/v1/seed</code> again (inserts 16 SKUs only if table is empty)
       </p>
     );
   }

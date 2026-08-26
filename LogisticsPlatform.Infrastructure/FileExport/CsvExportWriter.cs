@@ -35,12 +35,34 @@ public sealed class CsvExportWriter : IFileWriter
             IReadOnlyList<object?> values = mapRow(row);
             foreach (object? value in values)
             {
-                csv.WriteField(value);
+                csv.WriteField(SanitizeForCsv(value));
             }
 
             await csv.NextRecordAsync();
         }
 
         await writer.FlushAsync(cancellationToken);
+    }
+
+    private static string? SanitizeForCsv(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (text.Length == 0)
+        {
+            return text;
+        }
+
+        char first = text[0];
+        if (first is '=' or '+' or '-' or '@' or '\t' or '\r')
+        {
+            return "'" + text;
+        }
+
+        return text;
     }
 }

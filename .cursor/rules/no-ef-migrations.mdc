@@ -1,0 +1,9 @@
+---
+description: Never create or generate EF Core migrations
+alwaysApply: true
+---
+
+# No EF migrations
+
+- NEVER create, generate, scaffold, or edit EF Core migration files (`dotnet ef migrations add`, Designer/Snapshot churn for new migrations, hand-written `Migrations/*.cs`).
+- The user owns all migrations. After model/config changes, only mention that they may need to add a migration themselves — do not run tools or write migration code.

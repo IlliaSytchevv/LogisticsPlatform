@@ -23,17 +23,19 @@ internal static class OrdersQueryFilter
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            string pattern = $"%{filter.Search.Trim()}%";
+            string pattern = $"%{EscapeILikePattern(filter.Search.Trim())}%";
+            const string escape = @"\";
+
             query = query.Where(o =>
-                EF.Functions.ILike(o.Number, pattern)
-                || EF.Functions.ILike(o.Hub.Name, pattern)
-                || (o.Hub.RegionCode != null && EF.Functions.ILike(o.Hub.RegionCode, pattern))
-                || (o.Carrier != null && EF.Functions.ILike(o.Carrier.Name, pattern))
+                EF.Functions.ILike(o.Number, pattern, escape)
+                || EF.Functions.ILike(o.Hub.Name, pattern, escape)
+                || (o.Hub.RegionCode != null && EF.Functions.ILike(o.Hub.RegionCode, pattern, escape))
+                || (o.Carrier != null && EF.Functions.ILike(o.Carrier.Name, pattern, escape))
                 || (o.Cabinet.PrimaryReference != null
-                    && EF.Functions.ILike(o.Cabinet.PrimaryReference, pattern))
+                    && EF.Functions.ILike(o.Cabinet.PrimaryReference, pattern, escape))
                 || o.SubOrders.Any(s =>
-                    EF.Functions.ILike(s.Reference, pattern)
-                    || EF.Functions.ILike(s.Number, pattern)));
+                    EF.Functions.ILike(s.Reference, pattern, escape)
+                    || EF.Functions.ILike(s.Number, pattern, escape)));
         }
 
         if (filter.Tab.HasValue)
@@ -41,6 +43,12 @@ internal static class OrdersQueryFilter
 
         return query;
     }
+
+    private static string EscapeILikePattern(string value) =>
+        value
+            .Replace(@"\", @"\\", StringComparison.Ordinal)
+            .Replace("%", @"\%", StringComparison.Ordinal)
+            .Replace("_", @"\_", StringComparison.Ordinal);
 
     private static IQueryable<Order> ApplyTab(IQueryable<Order> query, OrderListTab tab) =>
         tab switch

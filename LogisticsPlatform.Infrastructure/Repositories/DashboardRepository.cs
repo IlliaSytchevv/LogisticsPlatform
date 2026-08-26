@@ -26,11 +26,16 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
         IQueryable<Order> orders = dbContext.Orders.AsNoTracking();
 
         int activeOrders = await orders.CountAsync(
-            o => ActiveStatuses.Contains(o.Status),
+            o => o.Status == OrderStatus.New
+                 || o.Status == OrderStatus.InProgress
+                 || o.Status == OrderStatus.Alert,
             cancellationToken);
 
         int activeOrdersThisWeek = await orders.CountAsync(
-            o => ActiveStatuses.Contains(o.Status) && o.CreatedAt >= startOfWeek,
+            o => (o.Status == OrderStatus.New
+                  || o.Status == OrderStatus.InProgress
+                  || o.Status == OrderStatus.Alert)
+                 && o.CreatedAt >= startOfWeek,
             cancellationToken);
 
         int completedLast30Days = await orders.CountAsync(
@@ -49,9 +54,6 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
 
         int alerts = await orders.CountAsync(o => o.HasAlert, cancellationToken);
 
-        // Total is the sum of the two KPI chips (an order can be both awaiting and alert).
-        int needAttention = awaitingClientAction + alerts;
-
         List<AlertSampleData> alertSamples = await orders
             .Where(o => o.HasAlert)
             .OrderByDescending(o => o.CreatedAt)
@@ -64,7 +66,7 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
             activeOrdersThisWeek,
             completedLast30Days,
             completedPrevious30Days,
-            needAttention,
+            awaitingClientAction + alerts,
             awaitingClientAction,
             alerts,
             alertSamples);
@@ -177,6 +179,7 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
     public async Task<DashboardActivityData> GetActivityAsync(
         DateTimeOffset rangeStart,
         DateTimeOffset previousStart,
+        IReadOnlyList<ActivityBucket> buckets,
         CancellationToken cancellationToken)
     {
         int previousCompleted = await dbContext.Orders
@@ -187,13 +190,29 @@ public sealed class DashboardRepository(AppDbContext dbContext) : IDashboardRepo
                      && o.CompletedAt < rangeStart,
                 cancellationToken);
 
-        List<CompletedActivityRow> currentRows = await dbContext.Orders
-            .AsNoTracking()
-            .Where(o => o.Status == OrderStatus.Completed && o.CompletedAt >= rangeStart)
-            .Select(o => new CompletedActivityRow(o.CompletedAt!.Value, o.SpendCents))
-            .ToListAsync(cancellationToken);
+        var aggregates = new List<CompletedActivityBucketAggregate>(buckets.Count);
 
-        return new DashboardActivityData(currentRows, previousCompleted);
+        foreach (ActivityBucket bucket in buckets)
+        {
+            IQueryable<Order> bucketOrders = dbContext.Orders
+                .AsNoTracking()
+                .Where(o =>
+                    o.Status == OrderStatus.Completed
+                    && o.CompletedAt >= bucket.Start
+                    && o.CompletedAt < bucket.End);
+
+            int completedCount = await bucketOrders.CountAsync(cancellationToken);
+            long spendCents = completedCount == 0
+                ? 0
+                : await bucketOrders.SumAsync(o => o.SpendCents, cancellationToken);
+
+            aggregates.Add(new CompletedActivityBucketAggregate(
+                bucket.Label,
+                completedCount,
+                spendCents));
+        }
+
+        return new DashboardActivityData(aggregates, previousCompleted);
     }
 
     private static DateTimeOffset StartOfWeek(DateTimeOffset value)

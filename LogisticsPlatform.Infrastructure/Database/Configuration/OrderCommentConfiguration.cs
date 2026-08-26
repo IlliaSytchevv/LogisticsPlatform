@@ -20,5 +20,7 @@ public sealed class OrderCommentConfiguration : IEntityTypeConfiguration<OrderCo
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.OrderId);
+        builder.HasIndex(x => new { x.OrderId, x.CreatedAt })
+            .HasDatabaseName("IX_OrderComments_OrderId_CreatedAt");
     }
 }

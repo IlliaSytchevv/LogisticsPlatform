@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Dashboard.ActiveOrders;
 using LogisticsPlatform.Application.Models.Dashboard;
-using LogisticsPlatform.Domain.DTO.Dashboard.ActiveOrders;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Dashboard;

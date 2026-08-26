@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Orders.FilterOptions;
+using LogisticsPlatform.Application.DTO.Orders.FilterOptions;
 
 namespace LogisticsPlatform.Application.UseCases.Orders.GetFilterOptions;
 

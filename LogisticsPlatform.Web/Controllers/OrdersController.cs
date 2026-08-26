@@ -1,24 +1,24 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Export;
+using LogisticsPlatform.Application.DTO.Orders.List;
+using LogisticsPlatform.Application.DTO.Orders.TabCounts;
 using LogisticsPlatform.Application.UseCases.Orders.CreateOrder;
 using LogisticsPlatform.Application.UseCases.Orders.ExportOrders;
 using LogisticsPlatform.Application.UseCases.Orders.GetFilterOptions;
 using LogisticsPlatform.Application.UseCases.Orders.GetOrdersList;
 using LogisticsPlatform.Application.UseCases.Orders.GetTabCounts;
-using LogisticsPlatform.Domain.DTO.Orders.Export;
-using LogisticsPlatform.Domain.DTO.Orders.List;
-using LogisticsPlatform.Domain.DTO.Orders.TabCounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 
 namespace LogisticsPlatform.Controllers;
 
-[Route("api/orders")]
+[Authorize]
+[Route(ApiRoutes.ApiRoutes.Orders)]
 public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
-    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateOrder(
         [FromBody] CreateOrderRequest request,

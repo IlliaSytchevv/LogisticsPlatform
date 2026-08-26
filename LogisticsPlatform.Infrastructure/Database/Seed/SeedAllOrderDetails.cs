@@ -1,3 +1,5 @@
+using LogisticsPlatform.Application.Interfaces.Services;
+using LogisticsPlatform.Application.Services;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +55,7 @@ public static class SeedAllOrderDetails
     {
         await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        IPhotoBlobStore photoBlobStore = scope.ServiceProvider.GetRequiredService<IPhotoBlobStore>();
 
         var now = DateTimeOffset.UtcNow;
 
@@ -139,7 +142,7 @@ public static class SeedAllOrderDetails
 
             if (!ordersWithWarehousePhotos.Contains(order.Id))
             {
-                warehousePhotosAdded += AddWarehousePhoto(dbContext, order);
+                warehousePhotosAdded += await AddWarehousePhotoAsync(dbContext, photoBlobStore, order);
                 ordersWithWarehousePhotos.Add(order.Id);
             }
         }
@@ -423,7 +426,9 @@ public static class SeedAllOrderDetails
                 Id = Guid.NewGuid(),
                 OrderId = order.Id,
                 Kind = "Status",
-                Text = $"Created → {FormatStatus(order.Status)}",
+                Text = string.Empty,
+                PreviousStatus = null,
+                NewStatus = order.Status,
                 AuthorName = "System",
                 CreatedAt = order.CreatedAt
             },
@@ -439,30 +444,26 @@ public static class SeedAllOrderDetails
         return 2;
     }
 
-    private static int AddWarehousePhoto(AppDbContext dbContext, Order order)
+    private static async Task<int> AddWarehousePhotoAsync(
+        AppDbContext dbContext,
+        IPhotoBlobStore photoBlobStore,
+        Order order)
     {
+        Guid photoId = Guid.NewGuid();
+        const string contentType = "image/png";
+        string storageKey = PhotoStorageKeys.ForWarehouse(order.Id, photoId, contentType);
+        await photoBlobStore.SaveAsync(storageKey, TinyPng, CancellationToken.None);
+
         dbContext.OrderWarehousePhotos.Add(new OrderWarehousePhoto
         {
-            Id = Guid.NewGuid(),
+            Id = photoId,
             OrderId = order.Id,
             FileName = $"warehouse-{order.Number}.png",
-            ContentType = "image/png",
-            Content = TinyPng,
-            SortOrder = 1
+            ContentType = contentType,
+            StorageKey = storageKey
         });
         return 1;
     }
-
-    private static string FormatStatus(OrderStatus status) => status switch
-    {
-        OrderStatus.InProgress => "IN PROGRESS",
-        OrderStatus.New => "NEW",
-        OrderStatus.Alert => "ALERT",
-        OrderStatus.Completed => "COMPLETED",
-        OrderStatus.Closed => "CLOSED",
-        OrderStatus.Draft => "DRAFT",
-        _ => status.ToString().ToUpperInvariant()
-    };
 
     private static async Task<int> EnsureHubDocksAsync(AppDbContext dbContext)
     {

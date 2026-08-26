@@ -1,9 +1,9 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.List;
 using LogisticsPlatform.Application.Extensions.Mapping.Orders;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.List;
 
 namespace LogisticsPlatform.Application.UseCases.Orders.GetOrdersList;
 

@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Notifications;
 using LogisticsPlatform.Application.Models.Notifications;
-using LogisticsPlatform.Domain.DTO.Notifications;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Notifications;
 

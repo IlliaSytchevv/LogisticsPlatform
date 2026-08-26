@@ -1,9 +1,9 @@
 using Ardalis.Result;
+using LogisticsPlatform.Application.DTO.Orders.List;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Application.Models.Supplies;
 using LogisticsPlatform.Application.UseCases.Orders.CreateOrder;
-using LogisticsPlatform.Domain.DTO.Orders.List;
 using LogisticsPlatform.Domain.Enums;
 using Moq;
 
@@ -13,12 +13,11 @@ public sealed class CreateOrderCommandHandlerTests
 {
     private readonly Mock<IOrdersRepository> _orders = new();
     private readonly Mock<ISupplyCatalogRepository> _catalog = new();
-    private readonly Mock<IOrderDetailsRepository> _orderDetails = new();
     private readonly CreateOrderCommandHandler _sut;
 
     public CreateOrderCommandHandlerTests()
     {
-        _sut = new CreateOrderCommandHandler(_orders.Object, _catalog.Object, _orderDetails.Object);
+        _sut = new CreateOrderCommandHandler(_orders.Object, _catalog.Object);
     }
 
     [Fact]
@@ -42,6 +41,7 @@ public sealed class CreateOrderCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
+                It.IsAny<IReadOnlyList<OrderSupplyDraftLine>?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -73,8 +73,10 @@ public sealed class CreateOrderCommandHandlerTests
         _orders.Setup(x => x.HubExistsAsync(command.HubId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _orders.Setup(x => x.UserExistsAsync(command.CreatedByUserId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _catalog
-            .Setup(x => x.GetByIdAsync(catalogItemId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((SupplyCatalogItemInternalData?)null);
+            .Setup(x => x.GetByIdsAsync(
+                It.Is<IReadOnlyCollection<Guid>>(ids => ids.Single() == catalogItemId),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
         // Act
         var result = await _sut.Handle(command, CancellationToken.None);
@@ -90,6 +92,7 @@ public sealed class CreateOrderCommandHandlerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
+                It.IsAny<IReadOnlyList<OrderSupplyDraftLine>?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -116,6 +119,7 @@ public sealed class CreateOrderCommandHandlerTests
                 "TBD",
                 "ON",
                 command.PrimaryReference,
+                null,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
 
@@ -135,12 +139,13 @@ public sealed class CreateOrderCommandHandlerTests
                 "TBD",
                 "ON",
                 command.PrimaryReference,
+                null,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldAddSuppliesWithPlatformPrice_WhenCatalogLinesProvided()
+    public async Task Handle_ShouldCreateDraftWithPlatformPriceSupplies_WhenCatalogLinesProvided()
     {
         // Arrange
         var catalogItemId = Guid.Parse("d1000000-0000-0000-0000-000000000001");
@@ -167,8 +172,10 @@ public sealed class CreateOrderCommandHandlerTests
         _orders.Setup(x => x.HubExistsAsync(command.HubId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _orders.Setup(x => x.UserExistsAsync(command.CreatedByUserId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _catalog
-            .Setup(x => x.GetByIdAsync(catalogItemId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItem);
+            .Setup(x => x.GetByIdsAsync(
+                It.Is<IReadOnlyCollection<Guid>>(ids => ids.Single() == catalogItemId),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([catalogItem]);
         _orders
             .Setup(x => x.CreateDraftAsync(
                 It.IsAny<OrderType>(),
@@ -178,52 +185,37 @@ public sealed class CreateOrderCommandHandlerTests
                 "Toronto",
                 "ON",
                 It.IsAny<string?>(),
+                It.Is<IReadOnlyList<OrderSupplyDraftLine>>(lines =>
+                    lines.Count == 1
+                    && lines[0].Sku == "WRAP-001"
+                    && lines[0].Quantity == 3
+                    && lines[0].UnitPriceCents == 120),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(created);
-        _orderDetails
-            .Setup(x => x.AddSupplyAsync(
-                created.Id,
-                catalogItem.Sku,
-                catalogItem.Name,
-                catalogItem.Category,
-                3,
-                catalogItem.PlatformPriceCents,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderSupplyData(
-                Guid.NewGuid(),
-                created.Id,
-                catalogItem.Sku,
-                catalogItem.Name,
-                catalogItem.Category,
-                3,
-                catalogItem.PlatformPriceCents,
-                360));
 
         // Act
         var result = await _sut.Handle(command, CancellationToken.None);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
-        _orderDetails.Verify(
-            x => x.AddSupplyAsync(
-                created.Id,
-                "WRAP-001",
-                "Shrink wrap 120g",
-                "Packaging",
-                3,
-                120,
+        _orders.Verify(
+            x => x.CreateDraftAsync(
+                It.IsAny<OrderType>(),
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<DateTimeOffset>(),
+                "Toronto",
+                "ON",
+                It.IsAny<string?>(),
+                It.Is<IReadOnlyList<OrderSupplyDraftLine>>(lines =>
+                    lines.Count == 1
+                    && lines[0].UnitPriceCents == 120
+                    && lines[0].UnitPriceCents != 70),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-        _orderDetails.Verify(
-            x => x.AddSupplyAsync(
-                It.IsAny<Guid>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int>(),
-                70,
-                It.IsAny<CancellationToken>()),
-            Times.Never);
+        _catalog.Verify(
+            x => x.GetByIdsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private static CreateOrderCommand CreateCommand(

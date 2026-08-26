@@ -6,6 +6,7 @@ public sealed class GetOrderCommentsQueryValidator : AbstractValidator<GetOrderC
 {
     public GetOrderCommentsQueryValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
     }
 }

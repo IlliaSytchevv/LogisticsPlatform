@@ -7,8 +7,13 @@ public sealed class AddSupplyFromCatalogCommandValidator
 {
     public AddSupplyFromCatalogCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.CatalogItemId).NotEmpty();
-        RuleFor(x => x.Quantity).InclusiveBetween(1, 10_000);
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.CatalogItemId)
+            .NotEmpty();
+        
+        RuleFor(x => x.Quantity)
+            .InclusiveBetween(1, 10_000);
     }
 }

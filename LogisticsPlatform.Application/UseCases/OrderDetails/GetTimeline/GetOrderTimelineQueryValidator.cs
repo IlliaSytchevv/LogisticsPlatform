@@ -6,6 +6,7 @@ public sealed class GetOrderTimelineQueryValidator : AbstractValidator<GetOrderT
 {
     public GetOrderTimelineQueryValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
     }
 }

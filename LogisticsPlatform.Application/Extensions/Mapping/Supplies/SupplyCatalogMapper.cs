@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Supplies;
 using LogisticsPlatform.Application.Models.Supplies;
-using LogisticsPlatform.Domain.DTO.Supplies;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Supplies;
 

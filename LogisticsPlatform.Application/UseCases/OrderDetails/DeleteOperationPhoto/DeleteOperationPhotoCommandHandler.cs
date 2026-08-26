@@ -1,26 +1,33 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.Interfaces.Repositories;
+using LogisticsPlatform.Application.Interfaces.Services;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.DeleteOperationPhoto;
 
-public sealed class DeleteOperationPhotoCommandHandler(IOrderDetailsRepository orderDetailsRepository)
+public sealed class DeleteOperationPhotoCommandHandler(
+    IOrderOperationsRepository orderOperationsRepository,
+    IPhotoBlobStore photoBlobStore)
     : ICommandHandler<DeleteOperationPhotoCommand, Result>
 {
     public async Task<Result> Handle(DeleteOperationPhotoCommand command, CancellationToken cancellationToken)
     {
-        if (!await orderDetailsRepository.OperationExistsAsync(
+        if (!await orderOperationsRepository.OperationExistsAsync(
                 command.OrderId,
                 command.OperationId,
                 cancellationToken))
             return Result.NotFound();
 
-        bool deleted = await orderDetailsRepository.SoftDeleteOperationPhotoAsync(
+        string? storageKey = await orderOperationsRepository.SoftDeleteOperationPhotoAsync(
             command.OrderId,
             command.OperationId,
             command.PhotoId,
             cancellationToken);
 
-        return deleted ? Result.Success() : Result.NotFound();
+        if (storageKey is null)
+            return Result.NotFound();
+
+        await photoBlobStore.DeleteAsync(storageKey, cancellationToken);
+        return Result.Success();
     }
 }

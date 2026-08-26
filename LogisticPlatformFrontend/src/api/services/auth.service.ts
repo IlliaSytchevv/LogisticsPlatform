@@ -1,6 +1,8 @@
 import type { LoginRequest, LoginResponse, RegisterRequest } from "@/types/auth";
+import { apiV1 } from "@/lib/api/routes";
+import { API_BASE_URL } from "@/lib/api/base-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
+const authApi = `${API_BASE_URL}${apiV1("/auth")}`;
 
 /**
  * Direct backend auth calls (used only if you bypass server actions).
@@ -8,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
  */
 class AuthService {
   login(payload: LoginRequest) {
-    return fetch(`${API_URL}/api/auth/login`, {
+    return fetch(`${authApi}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -20,7 +22,7 @@ class AuthService {
   }
 
   register(payload: RegisterRequest) {
-    return fetch(`${API_URL}/api/auth/register`, {
+    return fetch(`${authApi}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

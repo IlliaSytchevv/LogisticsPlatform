@@ -12,5 +12,6 @@ public interface IDashboardRepository
     Task<DashboardActivityData> GetActivityAsync(
         DateTimeOffset rangeStart,
         DateTimeOffset previousStart,
+        IReadOnlyList<ActivityBucket> buckets,
         CancellationToken cancellationToken);
 }

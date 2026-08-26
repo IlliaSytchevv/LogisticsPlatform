@@ -7,8 +7,13 @@ public sealed class UpdateOrderSupplyQuantityCommandValidator
 {
     public UpdateOrderSupplyQuantityCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.SupplyId).NotEmpty();
-        RuleFor(x => x.Quantity).GreaterThan(0);
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.SupplyId)
+            .NotEmpty();
+        
+        RuleFor(x => x.Quantity)
+            .GreaterThan(0);
     }
 }

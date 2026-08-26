@@ -1,15 +1,16 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Application.Models.Supplies;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddSupplyFromCatalog;
 
 public sealed class AddSupplyFromCatalogCommandHandler(
-    IOrderDetailsRepository orderDetailsRepository,
+    IOrderAccessRepository orderAccessRepository,
+    IOrderSuppliesRepository orderSuppliesRepository,
     ISupplyCatalogRepository supplyCatalogRepository)
     : ICommandHandler<AddSupplyFromCatalogCommand, Result<OrderSupplyResponse>>
 {
@@ -17,7 +18,7 @@ public sealed class AddSupplyFromCatalogCommandHandler(
         AddSupplyFromCatalogCommand command,
         CancellationToken cancellationToken)
     {
-        if (!await orderDetailsRepository.ExistsAsync(command.OrderId, cancellationToken))
+        if (!await orderAccessRepository.ExistsAsync(command.OrderId, cancellationToken))
             return Result<OrderSupplyResponse>.NotFound();
 
         SupplyCatalogItemInternalData? catalogItem = await supplyCatalogRepository.GetByIdAsync(
@@ -27,7 +28,7 @@ public sealed class AddSupplyFromCatalogCommandHandler(
         if (catalogItem is null)
             return Result<OrderSupplyResponse>.NotFound();
 
-        OrderSupplyData data = await orderDetailsRepository.AddSupplyAsync(
+        OrderSupplyData data = await orderSuppliesRepository.AddSupplyAsync(
             command.OrderId,
             catalogItem.Sku,
             catalogItem.Name,

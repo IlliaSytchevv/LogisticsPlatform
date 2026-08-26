@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Orders.TabCounts;
+using LogisticsPlatform.Application.DTO.Orders.TabCounts;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.UseCases.Orders.GetTabCounts;

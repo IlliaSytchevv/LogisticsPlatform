@@ -6,7 +6,10 @@ public sealed class GetWarehousePhotoQueryValidator : AbstractValidator<GetWareh
 {
     public GetWarehousePhotoQueryValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.PhotoId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.PhotoId)
+            .NotEmpty();
     }
 }

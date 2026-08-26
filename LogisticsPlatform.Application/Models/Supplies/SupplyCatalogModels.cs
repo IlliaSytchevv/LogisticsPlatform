@@ -10,7 +10,6 @@ public sealed record SupplyCatalogItemData(
 public sealed record SupplyCatalogData(
     IReadOnlyList<SupplyCatalogItemData> Items);
 
-/// <summary>Internal lookup including WP/margin — never map to client DTO.</summary>
 public sealed record SupplyCatalogItemInternalData(
     Guid Id,
     string Sku,

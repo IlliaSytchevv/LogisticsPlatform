@@ -29,5 +29,6 @@ public interface IOrdersRepository
         string destinationCity,
         string destinationRegion,
         string? primaryReference,
+        IReadOnlyList<OrderSupplyDraftLine>? supplies,
         CancellationToken cancellationToken);
 }

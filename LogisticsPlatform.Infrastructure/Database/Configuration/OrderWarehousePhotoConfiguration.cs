@@ -13,7 +13,7 @@ public sealed class OrderWarehousePhotoConfiguration : IEntityTypeConfiguration<
 
         builder.Property(x => x.FileName).HasMaxLength(256).IsRequired();
         builder.Property(x => x.ContentType).HasMaxLength(128).IsRequired();
-        builder.Property(x => x.Content).IsRequired();
+        builder.Property(x => x.StorageKey).HasMaxLength(512).IsRequired();
 
         builder.HasOne(x => x.Order)
             .WithMany(o => o.WarehousePhotos)
@@ -21,6 +21,12 @@ public sealed class OrderWarehousePhotoConfiguration : IEntityTypeConfiguration<
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.OrderId);
+        builder.HasIndex(x => x.StorageKey)
+            .IsUnique()
+            .HasDatabaseName("IX_OrderWarehousePhotos_StorageKey");
+        builder.HasIndex(x => new { x.OrderId, x.IsDeleted })
+            .HasDatabaseName("IX_OrderWarehousePhotos_OrderId_IsDeleted");
+
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

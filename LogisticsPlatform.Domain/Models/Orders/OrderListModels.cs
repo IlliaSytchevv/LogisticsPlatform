@@ -66,3 +66,10 @@ public sealed record OrderCreatedData(
     OrderType Type,
     OrderStatus Status);
 
+public sealed record OrderSupplyDraftLine(
+    string Sku,
+    string Name,
+    string Category,
+    int Quantity,
+    long UnitPriceCents);
+

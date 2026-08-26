@@ -10,6 +10,34 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
     {
         builder.ToTable("Orders");
 
+        builder.Property(o => o.Number)
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.HasIndex(o => o.Number)
+            .IsUnique()
+            .HasDatabaseName("IX_Orders_Number");
+
+        builder.HasIndex(o => new { o.Status, o.ScheduledAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Orders_Status_ScheduledAt");
+
+        builder.HasIndex(o => new { o.HubId, o.ScheduledAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Orders_HubId_ScheduledAt");
+
+        builder.HasIndex(o => new { o.HasAlert, o.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Orders_HasAlert_CreatedAt");
+
+        builder.HasIndex(o => new { o.Status, o.CompletedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Orders_Status_CompletedAt");
+
+        builder.HasIndex(o => new { o.Type, o.Status, o.HasAlert, o.ScheduledAt })
+            .IsDescending(false, false, false, true)
+            .HasDatabaseName("IX_Orders_Type_Status_HasAlert_ScheduledAt");
+
         builder.HasOne(o => o.Hub)
             .WithMany(h => h.Orders)
             .HasForeignKey(o => o.HubId)
@@ -34,6 +62,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             nextAction.Property(x => x.NextActionDueAt).HasColumnName("NextActionDueAt");
             nextAction.Property(x => x.NextActionAmountCents).HasColumnName("NextActionAmountCents");
             nextAction.Property(x => x.NextActionDocumentNumber).HasColumnName("NextActionDocumentNumber");
+
+            nextAction.HasIndex(x => x.AwaitingClientAction)
+                .HasDatabaseName("IX_Orders_AwaitingClientAction");
         });
 
         builder.OwnsOne(o => o.Cabinet, cabinet =>

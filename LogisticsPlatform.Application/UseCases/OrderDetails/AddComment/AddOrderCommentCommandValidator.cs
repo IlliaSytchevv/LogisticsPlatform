@@ -6,8 +6,11 @@ public sealed class AddOrderCommentCommandValidator : AbstractValidator<AddOrder
 {
     public AddOrderCommentCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.Text).NotEmpty().MaximumLength(2000);
-        RuleFor(x => x.AuthorName).MaximumLength(128).When(x => x.AuthorName is not null);
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.Text)
+            .NotEmpty()
+            .MaximumLength(2000);
     }
 }

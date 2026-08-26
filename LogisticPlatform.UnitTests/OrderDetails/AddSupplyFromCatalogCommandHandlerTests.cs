@@ -1,29 +1,33 @@
 using Ardalis.Result;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Application.Models.Supplies;
 using LogisticsPlatform.Application.UseCases.OrderDetails.AddSupplyFromCatalog;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 using Moq;
 
 namespace LogisticPlatform.UnitTests.OrderDetails;
 
 public sealed class AddSupplyFromCatalogCommandHandlerTests
 {
-    private readonly Mock<IOrderDetailsRepository> _orderDetails = new();
+    private readonly Mock<IOrderAccessRepository> _orderAccess = new();
+    private readonly Mock<IOrderSuppliesRepository> _orderSupplies = new();
     private readonly Mock<ISupplyCatalogRepository> _catalog = new();
     private readonly AddSupplyFromCatalogCommandHandler _sut;
 
     public AddSupplyFromCatalogCommandHandlerTests()
     {
-        _sut = new AddSupplyFromCatalogCommandHandler(_orderDetails.Object, _catalog.Object);
+        _sut = new AddSupplyFromCatalogCommandHandler(
+            _orderAccess.Object,
+            _orderSupplies.Object,
+            _catalog.Object);
     }
 
     [Fact]
     public async Task Handle_ShouldReturnNotFound_WhenOrderDoesNotExist()
     {
         var orderId = Guid.NewGuid();
-        _orderDetails.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _orderAccess.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         Result<OrderSupplyResponse> result = await _sut.Handle(
             new AddSupplyFromCatalogCommand(orderId, Guid.NewGuid(), 1),
@@ -38,8 +42,8 @@ public sealed class AddSupplyFromCatalogCommandHandlerTests
     {
         var orderId = Guid.NewGuid();
         var catalogItemId = Guid.NewGuid();
-        
-        _orderDetails.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        _orderAccess.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _catalog
             .Setup(x => x.GetByIdAsync(catalogItemId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((SupplyCatalogItemInternalData?)null);
@@ -49,7 +53,7 @@ public sealed class AddSupplyFromCatalogCommandHandlerTests
             CancellationToken.None);
 
         result.Status.ShouldBe(ResultStatus.NotFound);
-        _orderDetails.Verify(
+        _orderSupplies.Verify(
             x => x.AddSupplyAsync(
                 It.IsAny<Guid>(),
                 It.IsAny<string>(),
@@ -88,11 +92,11 @@ public sealed class AddSupplyFromCatalogCommandHandlerTests
             UnitPriceCents: platformPrice,
             LineTotalCents: platformPrice * 4);
 
-        _orderDetails.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _orderAccess.Setup(x => x.ExistsAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _catalog
             .Setup(x => x.GetByIdAsync(catalogItemId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItem);
-        _orderDetails
+        _orderSupplies
             .Setup(x => x.AddSupplyAsync(
                 orderId,
                 catalogItem.Sku,
@@ -110,10 +114,10 @@ public sealed class AddSupplyFromCatalogCommandHandlerTests
         result.IsSuccess.ShouldBeTrue();
         result.Value.UnitPriceCents.ShouldBe(platformPrice);
         result.Value.Sku.ShouldBe("WRAP-001");
-        _orderDetails.Verify(x => x.AddSupplyAsync(orderId, "WRAP-001", "Shrink wrap 120g", "Packaging", 
+        _orderSupplies.Verify(x => x.AddSupplyAsync(orderId, "WRAP-001", "Shrink wrap 120g", "Packaging",
                 4, platformPrice, It.IsAny<CancellationToken>()),
             Times.Once);
-        _orderDetails.Verify(x => x.AddSupplyAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(),
+        _orderSupplies.Verify(x => x.AddSupplyAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string>(), It.IsAny<int>(), wholesalePrice, It.IsAny<CancellationToken>()),
             Times.Never);
     }

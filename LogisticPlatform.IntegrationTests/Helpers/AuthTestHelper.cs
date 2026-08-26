@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using LogisticsPlatform.Domain.DTO.Authorization;
-using LogisticsPlatform.Domain.DTO.Orders.List;
+using LogisticsPlatform.Application.DTO.Authorization;
+using LogisticsPlatform.Application.DTO.Orders.List;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticPlatform.IntegrationTests.Helpers;
@@ -17,7 +17,7 @@ public static class AuthTestHelper
     public static async Task<string> LoginAsTestUserAsync(HttpClient client)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             new LoginRequest("testuser", "Test123!"));
 
         response.EnsureSuccessStatusCode();
@@ -40,7 +40,7 @@ public static class AuthTestHelper
         IReadOnlyList<CreateOrderSupplyLineRequest>? supplies = null)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            "/api/orders",
+            "/api/v1/orders",
             new CreateOrderRequest(
                 OrderType.Consolidation,
                 hubId,

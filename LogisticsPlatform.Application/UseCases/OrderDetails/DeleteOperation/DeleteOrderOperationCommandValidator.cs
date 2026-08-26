@@ -6,7 +6,10 @@ public sealed class DeleteOrderOperationCommandValidator : AbstractValidator<Del
 {
     public DeleteOrderOperationCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.OperationId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.OperationId)
+            .NotEmpty();
     }
 }

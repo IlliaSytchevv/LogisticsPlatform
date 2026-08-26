@@ -26,7 +26,7 @@ export function CommentsPanel({ orderId, open, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const addMutation = useMutation({
-    mutationFn: () => ordersService.addComment(orderId, { text, authorName: "You" }),
+    mutationFn: () => ordersService.addComment(orderId, { text }),
     onSuccess: async () => {
       setText("");
       setError(null);

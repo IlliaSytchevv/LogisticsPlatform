@@ -1,9 +1,9 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Dashboard.ActiveOrders;
 using LogisticsPlatform.Application.Extensions.Mapping.Dashboard;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Dashboard;
-using LogisticsPlatform.Domain.DTO.Dashboard.ActiveOrders;
 
 namespace LogisticsPlatform.Application.UseCases.Dashboard.GetActiveOrders;
 

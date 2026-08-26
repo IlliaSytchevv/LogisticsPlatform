@@ -12,8 +12,4 @@ public interface IJwtTokenService
     bool TryValidateRefreshToken(string refreshToken, out ClaimsPrincipal? principal);
 
     string HashRefreshToken(string token);
-
-    /// <summary>Legacy alias for GenerateAccessToken.</summary>
-    string GenerateToken(ApplicationUser user, IList<string> roles) =>
-        GenerateAccessToken(user, roles);
 }

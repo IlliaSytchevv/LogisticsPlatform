@@ -7,7 +7,10 @@ public sealed class GetNotificationsFeedQueryValidator
 {
     public GetNotificationsFeedQueryValidator()
     {
-        RuleFor(x => x.Days).InclusiveBetween(1, 90);
-        RuleFor(x => x.Take).InclusiveBetween(1, 50);
+        RuleFor(x => x.Days)
+            .InclusiveBetween(1, 90);
+        
+        RuleFor(x => x.Take)
+            .InclusiveBetween(1, 50);
     }
 }

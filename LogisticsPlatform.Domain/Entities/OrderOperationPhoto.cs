@@ -8,8 +8,7 @@ public class OrderOperationPhoto
 
     public string FileName { get; set; } = null!;
     public string ContentType { get; set; } = null!;
-    public byte[] Content { get; set; } = null!;
-    public int SortOrder { get; set; }
+    public string StorageKey { get; set; } = null!;
 
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }

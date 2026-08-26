@@ -13,10 +13,10 @@ import {
   extractCookieValue,
   readSetCookieHeaders,
 } from "@/lib/auth/cookie-utils";
+import { apiV1 } from "@/lib/api/routes";
+import { API_BASE_URL } from "@/lib/api/base-url";
 import { parseAuthUser } from "@/lib/auth/token";
 import type { AuthUser } from "@/types/auth";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
 
 export type LoginActionResult =
   | { ok: true; user: AuthUser | null }
@@ -26,7 +26,7 @@ export async function loginAction(
   username: string,
   password: string,
 ): Promise<LoginActionResult> {
-  const response = await fetch(`${API_URL}/api/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}${apiV1("/auth/login")}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),

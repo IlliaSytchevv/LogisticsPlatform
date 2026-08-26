@@ -33,6 +33,15 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -46,5 +55,4 @@ app.MapControllers();
 
 app.Run();
 
-// Expose entry point for WebApplicationFactory in integration tests.
 public partial class Program;

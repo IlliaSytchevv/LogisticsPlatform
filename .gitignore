@@ -105,4 +105,5 @@ $RECYCLE.BIN/
 *.bak
 *.orig
 *.rej
-node_modules/
+## Local photo blobs
+**/App_Data/photos/

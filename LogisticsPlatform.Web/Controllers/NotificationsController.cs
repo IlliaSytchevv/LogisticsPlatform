@@ -1,11 +1,13 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Notifications;
 using LogisticsPlatform.Application.UseCases.Notifications.GetFeed;
-using LogisticsPlatform.Domain.DTO.Notifications;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
 
-[Route("api/notifications")]
+[Authorize]
+[Route(ApiRoutes.ApiRoutes.Notifications)]
 public sealed class NotificationsController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
     [HttpGet("feed")]

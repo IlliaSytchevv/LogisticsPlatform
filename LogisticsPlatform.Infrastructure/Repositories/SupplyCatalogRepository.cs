@@ -42,4 +42,25 @@ public sealed class SupplyCatalogRepository(AppDbContext dbContext) : ISupplyCat
                 x.MarginSplitPercent))
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<SupplyCatalogItemInternalData>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await dbContext.SupplyCatalogItems
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && x.IsActive)
+            .Select(x => new SupplyCatalogItemInternalData(
+                x.Id,
+                x.Sku,
+                x.Name,
+                x.Category,
+                x.PlatformPriceCents,
+                x.WholesalePriceCents,
+                x.MarginSplitPercent))
+            .ToListAsync(cancellationToken);
+    }
 }

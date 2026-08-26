@@ -3,9 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using LogisticPlatform.IntegrationTests.Fixtures;
 using LogisticPlatform.IntegrationTests.Helpers;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
-using LogisticsPlatform.Domain.DTO.Orders.List;
-using LogisticsPlatform.Domain.DTO.Supplies;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
+using LogisticsPlatform.Application.DTO.Orders.List;
+using LogisticsPlatform.Application.DTO.Supplies;
 using LogisticsPlatform.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +31,7 @@ public sealed class SoftDeleteSupplyIntegrationTests(LogisticsApiFixture fixture
         CreateOrderResponse order = await AuthTestHelper.CreateOrderAsync(client, SeedIds.HubTorontoId);
 
         HttpResponseMessage addResponse = await client.PostAsJsonAsync(
-            $"/api/orders/{order.Id}/supplies/from-catalog",
+            $"/api/v1/orders/{order.Id}/supplies/from-catalog",
             new AddSupplyFromCatalogRequest(SeedIds.CatalogWrap001Id, Quantity: 2));
         addResponse.EnsureSuccessStatusCode();
 
@@ -41,12 +41,12 @@ public sealed class SoftDeleteSupplyIntegrationTests(LogisticsApiFixture fixture
 
         // Act
         HttpResponseMessage deleteResponse =
-            await client.DeleteAsync($"/api/orders/{order.Id}/supplies/{supply.Id}");
+            await client.DeleteAsync($"/api/v1/orders/{order.Id}/supplies/{supply.Id}");
 
         // Assert
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        HttpResponseMessage detailsResponse = await client.GetAsync($"/api/orders/{order.Id}");
+        HttpResponseMessage detailsResponse = await client.GetAsync($"/api/v1/orders/{order.Id}");
         detailsResponse.EnsureSuccessStatusCode();
         OrderDetailsResponse? details =
             await detailsResponse.Content.ReadFromJsonAsync<OrderDetailsResponse>(JsonOptions);
@@ -75,19 +75,19 @@ public sealed class SoftDeleteSupplyIntegrationTests(LogisticsApiFixture fixture
         CreateOrderResponse order = await AuthTestHelper.CreateOrderAsync(client, SeedIds.HubTorontoId);
 
         HttpResponseMessage addResponse = await client.PostAsJsonAsync(
-            $"/api/orders/{order.Id}/supplies/from-catalog",
+            $"/api/v1/orders/{order.Id}/supplies/from-catalog",
             new AddSupplyFromCatalogRequest(SeedIds.CatalogWrap001Id, Quantity: 1));
         addResponse.EnsureSuccessStatusCode();
         OrderSupplyResponse? supply =
             await addResponse.Content.ReadFromJsonAsync<OrderSupplyResponse>(JsonOptions);
         supply.ShouldNotBeNull();
 
-        (await client.DeleteAsync($"/api/orders/{order.Id}/supplies/{supply.Id}"))
+        (await client.DeleteAsync($"/api/v1/orders/{order.Id}/supplies/{supply.Id}"))
             .EnsureSuccessStatusCode();
 
         // Act
         HttpResponseMessage secondDelete =
-            await client.DeleteAsync($"/api/orders/{order.Id}/supplies/{supply.Id}");
+            await client.DeleteAsync($"/api/v1/orders/{order.Id}/supplies/{supply.Id}");
 
         // Assert
         secondDelete.StatusCode.ShouldBe(HttpStatusCode.NotFound);

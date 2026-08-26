@@ -1,6 +1,6 @@
+using LogisticsPlatform.Application.DTO.Orders.FilterOptions;
+using LogisticsPlatform.Application.DTO.Orders.TabCounts;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.FilterOptions;
-using LogisticsPlatform.Domain.DTO.Orders.TabCounts;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Orders;

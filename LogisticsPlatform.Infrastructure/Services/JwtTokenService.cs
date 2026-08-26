@@ -15,11 +15,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
     public const string TokenTypeClaim = "typ";
     public const string AccessTokenType = "access";
     public const string RefreshTokenType = "refresh";
-
-    /// <summary>
-    /// Keep long ClaimTypes.* names in the JWT so they match JwtBearer
-    /// (MapInboundClaims = false + RoleClaimType/NameClaimType = ClaimTypes.*).
-    /// </summary>
+    
     private static readonly JwtSecurityTokenHandler TokenHandler = CreateTokenHandler();
 
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
@@ -28,6 +24,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
     {
         var handler = new JwtSecurityTokenHandler();
         handler.OutboundClaimTypeMap.Clear();
+        
         return handler;
     }
 
@@ -98,9 +95,6 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
         byte[] hash = SHA256.HashData(data);
         return Convert.ToHexString(hash);
     }
-
-    public string GenerateToken(ApplicationUser user, IList<string> roles) =>
-        GenerateAccessToken(user, roles);
 
     private string CreateToken(IEnumerable<Claim> claims, DateTime expiresUtc)
     {

@@ -1,3 +1,5 @@
+using LogisticsPlatform.Domain.Enums;
+
 namespace LogisticsPlatform.Domain.Entities;
 
 public class OrderTimelineEntry
@@ -9,6 +11,8 @@ public class OrderTimelineEntry
     /// <summary>Status | Manual</summary>
     public string Kind { get; set; } = null!;
     public string Text { get; set; } = null!;
+    public OrderStatus? PreviousStatus { get; set; }
+    public OrderStatus? NewStatus { get; set; }
     public string? AuthorName { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

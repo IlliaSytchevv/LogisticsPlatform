@@ -5,14 +5,15 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
 
-[Route("api/supplies")]
+[Authorize]
+[Route(ApiRoutes.ApiRoutes.Supplies)]
 public sealed class SuppliesController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
-    [Authorize]
     [HttpGet("catalog")]
     public async Task<IActionResult> GetCatalog(CancellationToken cancellationToken)
     {
         var result = await Dispatcher.Send(new GetSupplyCatalogQuery(), cancellationToken);
+        
         return GetActionResult(result);
     }
 }

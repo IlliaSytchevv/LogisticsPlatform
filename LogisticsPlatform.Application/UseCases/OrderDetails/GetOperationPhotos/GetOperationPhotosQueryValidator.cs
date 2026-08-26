@@ -6,7 +6,10 @@ public sealed class GetOperationPhotosQueryValidator : AbstractValidator<GetOper
 {
     public GetOperationPhotosQueryValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.OperationId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.OperationId)
+            .NotEmpty();
     }
 }

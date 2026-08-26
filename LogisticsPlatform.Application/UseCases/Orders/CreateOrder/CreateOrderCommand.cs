@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Orders.List;
+using LogisticsPlatform.Application.DTO.Orders.List;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.UseCases.Orders.CreateOrder;

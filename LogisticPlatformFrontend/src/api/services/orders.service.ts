@@ -1,5 +1,6 @@
 import { BaseService } from "@/api/services/base.service";
 import { toQuery } from "@/api/fetcher";
+import { apiV1 } from "@/lib/api/routes";
 import { ApiError } from "@/types/auth";
 import type {
   AddOrderOperationRequest,
@@ -21,6 +22,8 @@ import type {
   UpdateOrderRequest,
   UpdateOrderSupplyRequest,
 } from "@/types/orders";
+
+const ordersApi = apiV1("/orders");
 
 async function downloadFile(path: string) {
   const response = await fetch(`/api/backend${path}`, {
@@ -92,131 +95,129 @@ export function mediaUrl(path: string) {
 
 class OrdersService extends BaseService {
   list(params: OrdersListParams = {}) {
-    return this.get<OrdersListResponse>(`/api/orders${toQuery(params)}`);
+    return this.get<OrdersListResponse>(`${ordersApi}${toQuery(params)}`);
   }
 
   tabCounts(params: Omit<OrdersListParams, "tab" | "page" | "pageSize"> = {}) {
-    return this.get<OrdersTabCounts>(`/api/orders/tab-counts${toQuery(params)}`);
+    return this.get<OrdersTabCounts>(`${ordersApi}/tab-counts${toQuery(params)}`);
   }
 
   filterOptions() {
-    return this.get<OrdersFilterOptions>("/api/orders/filter-options");
+    return this.get<OrdersFilterOptions>(`${ordersApi}/filter-options`);
   }
 
   getById(id: string) {
-    return this.get<OrderDetails>(`/api/orders/${id}`);
+    return this.get<OrderDetails>(`${ordersApi}/${id}`);
   }
 
   create(payload: CreateOrderRequest) {
-    return this.post<CreateOrderResponse>("/api/orders", payload);
+    return this.post<CreateOrderResponse>(`${ordersApi}`, payload);
   }
 
   update(id: string, payload: UpdateOrderRequest) {
-    return this.patch<{ id: string }>(`/api/orders/${id}`, payload);
+    return this.patch<{ id: string }>(`${ordersApi}/${id}`, payload);
   }
 
   async exportCsv(params: Omit<OrdersListParams, "page" | "pageSize"> = {}) {
-    await downloadFile(`/api/orders/export${toQuery(params)}`);
+    await downloadFile(`${ordersApi}/export${toQuery(params)}`);
   }
 
   downloadBolPdf(orderId: string) {
-    return downloadFile(`/api/orders/${orderId}/bol.pdf`);
+    return downloadFile(`${ordersApi}/${orderId}/bol.pdf`);
   }
 
   downloadQr(orderId: string) {
-    return downloadFile(`/api/orders/${orderId}/qr`);
+    return downloadFile(`${ordersApi}/${orderId}/qr`);
   }
 
   getComments(orderId: string) {
-    return this.get<OrderComment[]>(`/api/orders/${orderId}/comments`);
+    return this.get<OrderComment[]>(`${ordersApi}/${orderId}/comments`);
   }
 
   addComment(orderId: string, payload: AddTextRequest) {
-    return this.post<OrderComment>(`/api/orders/${orderId}/comments`, payload);
+    return this.post<OrderComment>(`${ordersApi}/${orderId}/comments`, payload);
   }
 
   getTimeline(orderId: string) {
-    return this.get<OrderTimelineEntry[]>(`/api/orders/${orderId}/timeline`);
+    return this.get<OrderTimelineEntry[]>(`${ordersApi}/${orderId}/timeline`);
   }
 
   addTimelineEntry(orderId: string, payload: AddTextRequest) {
-    return this.post<OrderTimelineEntry>(`/api/orders/${orderId}/timeline`, payload);
+    return this.post<OrderTimelineEntry>(`${ordersApi}/${orderId}/timeline`, payload);
   }
 
   addOperation(orderId: string, payload: AddOrderOperationRequest) {
-    return this.post<OrderOperation>(`/api/orders/${orderId}/operations`, payload);
+    return this.post<OrderOperation>(`${ordersApi}/${orderId}/operations`, payload);
   }
 
   deleteOperation(orderId: string, operationId: string) {
-    return this.delete<void>(`/api/orders/${orderId}/operations/${operationId}`);
+    return this.delete<void>(`${ordersApi}/${orderId}/operations/${operationId}`);
   }
 
   getOperationComments(orderId: string, operationId: string) {
     return this.get<OrderComment[]>(
-      `/api/orders/${orderId}/operations/${operationId}/comments`,
+      `${ordersApi}/${orderId}/operations/${operationId}/comments`,
     );
   }
 
   addOperationComment(orderId: string, operationId: string, payload: AddTextRequest) {
     return this.post<OrderComment>(
-      `/api/orders/${orderId}/operations/${operationId}/comments`,
+      `${ordersApi}/${orderId}/operations/${operationId}/comments`,
       payload,
     );
   }
 
   getOperationPhotos(orderId: string, operationId: string) {
     return this.get<OrderPhoto[]>(
-      `/api/orders/${orderId}/operations/${operationId}/photos`,
+      `${ordersApi}/${orderId}/operations/${operationId}/photos`,
     );
   }
 
-  addOperationPhoto(orderId: string, operationId: string, file: File, sortOrder?: number) {
+  addOperationPhoto(orderId: string, operationId: string, file: File) {
     const form = new FormData();
     form.append("file", file);
-    if (sortOrder !== undefined) form.append("sortOrder", String(sortOrder));
     return postForm<OrderPhoto>(
-      `/api/orders/${orderId}/operations/${operationId}/photos`,
+      `${ordersApi}/${orderId}/operations/${operationId}/photos`,
       form,
     );
   }
 
   deleteOperationPhoto(orderId: string, operationId: string, photoId: string) {
     return this.delete<void>(
-      `/api/orders/${orderId}/operations/${operationId}/photos/${photoId}`,
+      `${ordersApi}/${orderId}/operations/${operationId}/photos/${photoId}`,
     );
   }
 
   addSupply(orderId: string, payload: AddOrderSupplyRequest) {
-    return this.post<OrderSupply>(`/api/orders/${orderId}/supplies`, payload);
+    return this.post<OrderSupply>(`${ordersApi}/${orderId}/supplies`, payload);
   }
 
   addSupplyFromCatalog(orderId: string, payload: AddSupplyFromCatalogRequest) {
-    return this.post<OrderSupply>(`/api/orders/${orderId}/supplies/from-catalog`, payload);
+    return this.post<OrderSupply>(`${ordersApi}/${orderId}/supplies/from-catalog`, payload);
   }
 
   updateSupply(orderId: string, supplyId: string, payload: UpdateOrderSupplyRequest) {
-    return this.patch<OrderSupply>(`/api/orders/${orderId}/supplies/${supplyId}`, payload);
+    return this.patch<OrderSupply>(`${ordersApi}/${orderId}/supplies/${supplyId}`, payload);
   }
 
   updateSupplyQuantity(orderId: string, supplyId: string, quantity: number) {
-    return this.patch<OrderSupply>(`/api/orders/${orderId}/supplies/${supplyId}/quantity`, {
+    return this.patch<OrderSupply>(`${ordersApi}/${orderId}/supplies/${supplyId}/quantity`, {
       quantity,
     });
   }
 
   deleteSupply(orderId: string, supplyId: string) {
-    return this.delete<void>(`/api/orders/${orderId}/supplies/${supplyId}`);
+    return this.delete<void>(`${ordersApi}/${orderId}/supplies/${supplyId}`);
   }
 
-  addWarehousePhoto(orderId: string, file: File, sortOrder?: number) {
+  addWarehousePhoto(orderId: string, file: File) {
     const form = new FormData();
     form.append("file", file);
-    if (sortOrder !== undefined) form.append("sortOrder", String(sortOrder));
-    return postForm<OrderPhoto>(`/api/orders/${orderId}/warehouse-photos`, form);
+    return postForm<OrderPhoto>(`${ordersApi}/${orderId}/warehouse-photos`, form);
   }
 
   deleteWarehousePhoto(orderId: string, photoId: string) {
-    return this.delete<void>(`/api/orders/${orderId}/warehouse-photos/${photoId}`);
+    return this.delete<void>(`${ordersApi}/${orderId}/warehouse-photos/${photoId}`);
   }
 }
 

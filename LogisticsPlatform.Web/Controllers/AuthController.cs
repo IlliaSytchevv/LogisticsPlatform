@@ -1,19 +1,20 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Authorization;
 using LogisticsPlatform.Application.UseCases.Auth.Login;
 using LogisticsPlatform.Application.UseCases.Auth.Logout;
 using LogisticsPlatform.Application.UseCases.Auth.RefreshToken;
 using LogisticsPlatform.Application.UseCases.Auth.Register;
-using LogisticsPlatform.Domain.DTO.Authorization;
 using LogisticsPlatform.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
 
-[Route("api/auth")]
+[Route(ApiRoutes.ApiRoutes.Auth)]
 public sealed class AuthController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await Dispatcher.Send(
@@ -24,6 +25,7 @@ public sealed class AuthController(IDispatcher dispatcher) : ApiController(dispa
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await Dispatcher.Send(

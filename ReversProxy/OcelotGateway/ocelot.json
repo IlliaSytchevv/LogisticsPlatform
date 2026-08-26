@@ -11,6 +11,11 @@
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
       },
+      "QoSOptions": {
+        "ExceptionsAllowedBeforeBreaking": 25,
+        "DurationOfBreak": 2000,
+        "TimeoutValue": 60000
+      },
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
     }
   ],

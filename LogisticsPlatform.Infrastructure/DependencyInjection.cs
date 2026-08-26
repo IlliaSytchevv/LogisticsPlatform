@@ -10,6 +10,7 @@ using LogisticsPlatform.Infrastructure.Database;
 using LogisticsPlatform.Infrastructure.FileExport;
 using LogisticsPlatform.Infrastructure.Redis;
 using LogisticsPlatform.Infrastructure.Repositories;
+using LogisticsPlatform.Infrastructure.Repositories.OrderDetails;
 using LogisticsPlatform.Infrastructure.RepositoriesDecorator;
 using LogisticsPlatform.Infrastructure.Services;
 using LogisticsPlatform.Infrastructure.Wrappers;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddApplication();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<RedisOptions>(configuration.GetSection(RedisOptions.SectionName));
+        services.Configure<PhotoStorageOptions>(configuration.GetSection(PhotoStorageOptions.SectionName));
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
@@ -59,6 +61,7 @@ public static class DependencyInjection
         services.AddSingleton<IRedisService, RedisService>();
         services.AddSingleton<INotificationsFeedCacheInvalidator, NotificationsFeedCacheInvalidator>();
 
+        services.AddSingleton<IPhotoBlobStore, LocalPhotoBlobStore>();
         services.AddScoped<IUserManagerWrapper, UserManagerWrapper>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
@@ -71,7 +74,15 @@ public static class DependencyInjection
                 sp.GetRequiredService<ILogger<CachedNotificationsRepositoryDecorator>>()));
         services.AddScoped<ISupplyCatalogRepository, SupplyCatalogRepository>();
         services.AddScoped<IOrdersRepository, OrdersRepository>();
-        services.AddScoped<IOrderDetailsRepository, OrderDetailsRepository>();
+        services.AddScoped<IOrderAccessRepository, OrderAccessRepository>();
+        services.AddScoped<IOrderDetailsQueryRepository, OrderDetailsQueryRepository>();
+        services.AddScoped<IOrderDocumentsQueryRepository, OrderDocumentsQueryRepository>();
+        services.AddScoped<IOrderPatchRepository, OrderPatchRepository>();
+        services.AddScoped<IOrderOperationsRepository, OrderOperationsRepository>();
+        services.AddScoped<IOrderSuppliesRepository, OrderSuppliesRepository>();
+        services.AddScoped<IOrderWarehousePhotosRepository, OrderWarehousePhotosRepository>();
+        services.AddScoped<IOrderCommentsRepository, OrderCommentsRepository>();
+        services.AddScoped<IOrderTimelineRepository, OrderTimelineRepository>();
         services.AddScoped<IFileWriter, CsvExportWriter>();
         services.AddScoped<IOrdersExportSource, OrdersExportBatchReader>();
         services.AddScoped<IOrderBolPdfService, OrderBolPdfService>();

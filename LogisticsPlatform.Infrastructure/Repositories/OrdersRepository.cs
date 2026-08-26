@@ -1,4 +1,5 @@
 using LogisticsPlatform.Application.Interfaces.Repositories;
+using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
@@ -7,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LogisticsPlatform.Infrastructure.Repositories;
 
-public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
+public sealed class OrdersRepository(
+    AppDbContext dbContext,
+    INotificationsFeedCacheInvalidator notificationsFeedCacheInvalidator) : IOrdersRepository
 {
     public async Task<OrdersListData> GetOrdersAsync(
         OrdersListFilter filter,
@@ -21,6 +24,7 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
 
         var pageRows = await query
             .OrderByDescending(o => o.ScheduledAt)
+            .ThenByDescending(o => o.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(o => new
@@ -182,16 +186,13 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
         string destinationCity,
         string destinationRegion,
         string? primaryReference,
+        IReadOnlyList<OrderSupplyDraftLine>? supplies,
         CancellationToken cancellationToken)
     {
-        int draftCount = await dbContext.Orders
-            .IgnoreQueryFilters()
-            .CountAsync(o => o.Number.StartsWith("DRAFT-"), cancellationToken);
-
         var entity = new Order
         {
             Id = Guid.NewGuid(),
-            Number = $"DRAFT-{draftCount + 1:D3}",
+            Number = $"DRAFT-{Guid.NewGuid():N[..8].ToUpperInvariant()}",
             Type = type,
             Status = OrderStatus.Draft,
             HubId = hubId,
@@ -201,21 +202,46 @@ public sealed class OrdersRepository(AppDbContext dbContext) : IOrdersRepository
             CreatedByUserId = createdByUserId,
             Cabinet = new OrderCabinetDetail { PrimaryReference = primaryReference },
             CreatedAt = DateTimeOffset.UtcNow,
-            NextAction = new OrderNextAction { NextActionLabel = "Continue editing" },
+            NextAction = new OrderNextAction
+            {
+                NextActionLabel = "Continue editing",
+                AwaitingClientAction = true
+            },
             TimelineEntries =
             {
                 new OrderTimelineEntry
                 {
                     Id = Guid.NewGuid(),
                     Kind = "Status",
-                    Text = "DRAFT",
+                    Text = string.Empty,
+                    PreviousStatus = null,
+                    NewStatus = OrderStatus.Draft,
                     CreatedAt = DateTimeOffset.UtcNow
                 }
             }
         };
 
+        if (supplies is { Count: > 0 })
+        {
+            foreach (OrderSupplyDraftLine line in supplies)
+            {
+                entity.Supplies.Add(new OrderSupply
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = entity.Id,
+                    Sku = line.Sku,
+                    Name = line.Name,
+                    Category = line.Category,
+                    Quantity = line.Quantity,
+                    UnitPriceCents = line.UnitPriceCents,
+                    LineTotalCents = line.Quantity * line.UnitPriceCents
+                });
+            }
+        }
+
         dbContext.Orders.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await notificationsFeedCacheInvalidator.InvalidateAsync(cancellationToken);
 
         return new OrderCreatedData(entity.Id, entity.Number, entity.Type, entity.Status);
     }

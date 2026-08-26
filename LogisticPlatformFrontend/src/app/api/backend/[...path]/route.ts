@@ -5,16 +5,20 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth/constants";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
+import { API_BASE_URL } from "@/lib/api/base-url";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
-async function proxy(request: NextRequest, context: RouteContext, retried = false) {
+async function proxy(
+  request: NextRequest,
+  context: RouteContext,
+  retried = false,
+  bodyBuffer?: ArrayBuffer,
+) {
   const { path } = await context.params;
   const targetPath = `/${path.map(encodeURIComponent).join("/")}`;
   const url = new URL(request.url);
-  const target = `${API_URL}${targetPath}${url.search}`;
+  const target = `${API_BASE_URL}${targetPath}${url.search}`;
 
   const jar = await cookies();
   const access = jar.get(ACCESS_TOKEN_COOKIE)?.value;
@@ -26,7 +30,7 @@ async function proxy(request: NextRequest, context: RouteContext, retried = fals
 
   const method = request.method.toUpperCase();
   const hasBody = method !== "GET" && method !== "HEAD";
-  const body = hasBody ? await request.arrayBuffer() : undefined;
+  const body = bodyBuffer ?? (hasBody ? await request.arrayBuffer() : undefined);
 
   const upstream = await fetch(target, {
     method,
@@ -40,7 +44,7 @@ async function proxy(request: NextRequest, context: RouteContext, retried = fals
     if (refresh) {
       const ok = await refreshAccessTokenOnce(refresh);
       if (ok) {
-        return proxy(request, context, true);
+        return proxy(request, context, true, body);
       }
     }
   }

@@ -1,9 +1,9 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Dashboard.Activity;
 using LogisticsPlatform.Application.Extensions.Mapping.Dashboard;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Dashboard;
-using LogisticsPlatform.Domain.DTO.Dashboard.Activity;
 
 namespace LogisticsPlatform.Application.UseCases.Dashboard.GetActivity;
 
@@ -20,8 +20,9 @@ public sealed class GetDashboardActivityQueryHandler(IDashboardRepository dashbo
         DashboardActivityData data = await dashboardRepository.GetActivityAsync(
             rangeStart,
             previousStart,
+            buckets,
             cancellationToken);
 
-        return Result.Success(DashboardActivityMapper.ToResponse(query.Period, data, buckets));
+        return Result.Success(DashboardActivityMapper.ToResponse(query.Period, data));
     }
 }

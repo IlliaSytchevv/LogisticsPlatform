@@ -1,14 +1,14 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.GetBolPdf;
 
 public sealed class GetOrderBolPdfQueryHandler(
-    IOrderDetailsRepository orderDetailsRepository,
+    IOrderDocumentsQueryRepository orderDocumentsQueryRepository,
     IOrderBolPdfService bolPdfService)
     : IQueryHandler<GetOrderBolPdfQuery, Result<OrderFileResponse>>
 {
@@ -16,7 +16,7 @@ public sealed class GetOrderBolPdfQueryHandler(
         GetOrderBolPdfQuery query,
         CancellationToken cancellationToken)
     {
-        OrderDocumentData? order = await orderDetailsRepository.GetDocumentDataAsync(
+        OrderDocumentData? order = await orderDocumentsQueryRepository.GetDocumentDataAsync(
             query.OrderId,
             cancellationToken);
 

@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddWarehousePhoto;
 
@@ -8,5 +8,4 @@ public sealed record AddWarehousePhotoCommand(
     Guid OrderId,
     string FileName,
     string ContentType,
-    byte[] Content,
-    int? SortOrder) : ICommand<Result<OrderWarehousePhotoResponse>>;
+    byte[] Content) : ICommand<Result<OrderWarehousePhotoResponse>>;

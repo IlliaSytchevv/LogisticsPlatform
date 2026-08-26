@@ -1,12 +1,13 @@
 using LogisticsPlatform.Infrastructure.Database;
 using LogisticsPlatform.Infrastructure.Database.Seed;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LogisticsPlatform.Controllers;
 
 [ApiController]
-[Route("api/seed")]
+[Route(ApiRoutes.ApiRoutes.Seed)]
 public sealed class SeedController(IServiceProvider serviceProvider) : ControllerBase
 {
     [HttpPost]

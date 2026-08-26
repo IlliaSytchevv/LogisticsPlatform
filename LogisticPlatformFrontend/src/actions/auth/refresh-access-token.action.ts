@@ -14,8 +14,8 @@ import {
   extractCookieValue,
   readSetCookieHeaders,
 } from "@/lib/auth/cookie-utils";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124";
+import { apiV1 } from "@/lib/api/routes";
+import { API_BASE_URL } from "@/lib/api/base-url";
 
 export async function refreshAccessTokenAction(): Promise<boolean> {
   const jar = await cookies();
@@ -23,7 +23,7 @@ export async function refreshAccessTokenAction(): Promise<boolean> {
   if (!refresh) return false;
 
   try {
-    const response = await fetch(`${API_URL}/api/auth/refresh-token`, {
+    const response = await fetch(`${API_BASE_URL}${apiV1("/auth/refresh-token")}`, {
       method: "POST",
       headers: {
         Cookie: buildCookieHeader({ [BACKEND_REFRESH_COOKIE]: refresh }),

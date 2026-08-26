@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Dashboard.Metrics;
 using LogisticsPlatform.Application.Models.Dashboard;
-using LogisticsPlatform.Domain.DTO.Dashboard.Metrics;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Dashboard;
 

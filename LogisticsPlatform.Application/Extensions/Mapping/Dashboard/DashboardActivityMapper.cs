@@ -1,5 +1,5 @@
+using LogisticsPlatform.Application.DTO.Dashboard.Activity;
 using LogisticsPlatform.Application.Models.Dashboard;
-using LogisticsPlatform.Domain.DTO.Dashboard.Activity;
 using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.Extensions.Mapping.Dashboard;
@@ -8,32 +8,18 @@ public static class DashboardActivityMapper
 {
     public static DashboardActivityResponse ToResponse(
         ActivityPeriod period,
-        DashboardActivityData data,
-        IReadOnlyList<ActivityBucket> buckets)
+        DashboardActivityData data)
     {
-        int completedTotal = data.CurrentPeriodRows.Count;
-        long spendTotal = data.CurrentPeriodRows.Sum(x => x.SpendCents);
+        int completedTotal = data.BucketAggregates.Sum(x => x.CompletedCount);
+        long spendTotal = data.BucketAggregates.Sum(x => x.SpendCents);
 
-        var completedSeries = new List<ActivitySeriesPointResponse>(buckets.Count);
-        var spendSeries = new List<ActivitySeriesPointResponse>(buckets.Count);
+        var completedSeries = data.BucketAggregates
+            .Select(x => new ActivitySeriesPointResponse(x.Label, x.CompletedCount, 0))
+            .ToList();
 
-        foreach (ActivityBucket bucket in buckets)
-        {
-            int completed = 0;
-            long spend = 0;
-
-            foreach (CompletedActivityRow row in data.CurrentPeriodRows)
-            {
-                if (row.CompletedAt < bucket.Start || row.CompletedAt >= bucket.End)
-                    continue;
-
-                completed++;
-                spend += row.SpendCents;
-            }
-
-            completedSeries.Add(new ActivitySeriesPointResponse(bucket.Label, completed, 0));
-            spendSeries.Add(new ActivitySeriesPointResponse(bucket.Label, 0, spend));
-        }
+        var spendSeries = data.BucketAggregates
+            .Select(x => new ActivitySeriesPointResponse(x.Label, 0, x.SpendCents))
+            .ToList();
 
         int previousCompleted = data.PreviousPeriodCompletedCount;
         int growthPercent = previousCompleted == 0
@@ -156,8 +142,3 @@ public static class DashboardActivityMapper
     private static DateTimeOffset StartOfHour(DateTimeOffset value) =>
         new(value.Year, value.Month, value.Day, value.Hour, 0, 0, TimeSpan.Zero);
 }
-
-public sealed record ActivityBucket(
-    string Label,
-    DateTimeOffset Start,
-    DateTimeOffset End);

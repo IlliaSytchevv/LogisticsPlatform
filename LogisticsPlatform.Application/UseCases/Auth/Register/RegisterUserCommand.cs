@@ -1,6 +1,6 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
-using LogisticsPlatform.Domain.DTO.Authorization;
+using LogisticsPlatform.Application.DTO.Authorization;
 
 namespace LogisticsPlatform.Application.UseCases.Auth.Register;
 

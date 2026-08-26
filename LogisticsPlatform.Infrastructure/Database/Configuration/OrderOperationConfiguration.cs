@@ -22,6 +22,9 @@ public sealed class OrderOperationConfiguration : IEntityTypeConfiguration<Order
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.OrderId);
+        builder.HasIndex(x => new { x.OrderId, x.IsDeleted })
+            .HasDatabaseName("IX_OrderOperations_OrderId_IsDeleted");
+        
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

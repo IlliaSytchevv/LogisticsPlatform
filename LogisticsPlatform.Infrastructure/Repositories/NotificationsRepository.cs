@@ -19,7 +19,9 @@ public sealed class NotificationsRepository(AppDbContext dbContext) : INotificat
             .AsNoTracking()
             .Where(o =>
                 o.CreatedAt >= since &&
-                (o.HasAlert || o.NextAction.AwaitingClientAction))
+                (o.HasAlert
+                 || o.NextAction.AwaitingClientAction
+                 || o.Status == OrderStatus.Alert))
             .OrderByDescending(o => o.CreatedAt)
             .Take(take)
             .Select(o => new

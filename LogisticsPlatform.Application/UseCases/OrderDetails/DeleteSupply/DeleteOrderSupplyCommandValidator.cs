@@ -6,7 +6,10 @@ public sealed class DeleteOrderSupplyCommandValidator : AbstractValidator<Delete
 {
     public DeleteOrderSupplyCommandValidator()
     {
-        RuleFor(x => x.OrderId).NotEmpty();
-        RuleFor(x => x.SupplyId).NotEmpty();
+        RuleFor(x => x.OrderId)
+            .NotEmpty();
+        
+        RuleFor(x => x.SupplyId)
+            .NotEmpty();
     }
 }

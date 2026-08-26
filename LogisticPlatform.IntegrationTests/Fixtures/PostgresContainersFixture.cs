@@ -4,8 +4,11 @@ namespace LogisticPlatform.IntegrationTests.Fixtures;
 
 public sealed class PostgresContainersFixture : IAsyncLifetime
 {
-    private PostgreSqlContainer? _container;
-    public string ConnectionString => _container?.GetConnectionString();
+    private PostgreSqlContainer _container = null!;
+
+    public string ConnectionString =>
+        _container.GetConnectionString()
+        ?? throw new InvalidOperationException("PostgreSQL test container connection string is unavailable.");
 
     public async Task InitializeAsync()
     {
@@ -21,34 +24,6 @@ public sealed class PostgresContainersFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_container is not null)
-        {
-            await _container.DisposeAsync();
-        }
+        await _container.DisposeAsync();
     }
 }
-
-// using Testcontainers.Redis;
-// using Xunit;
-//
-// namespace Airbnb.IntegrationTest.Fixtures;
-//
-// public class RedisContainerFixture : IAsyncLifetime
-// {
-//     private RedisContainer Container { get; set; }
-//     public string ConnectionString => Container.GetConnectionString();
-//
-//     public async Task InitializeAsync()
-//     {
-//         Container = new RedisBuilder()
-//             .WithImage("redis:7.2-alpine")
-//             .Build();
-//         
-//         await Container.StartAsync();
-//     }
-//
-//     public async Task DisposeAsync()
-//     {
-//         await Container.DisposeAsync();
-//     }
-// }

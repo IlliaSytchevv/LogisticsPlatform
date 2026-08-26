@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using LogisticsPlatform.Domain.DTO;
+using LogisticsPlatform.Application.DTO;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,7 +23,7 @@ public sealed class GlobalExceptionHandler(
         {
             Status = mapping.StatusCode,
             Title = mapping.Title,
-            Detail = mapping.Detail,
+            Detail = environment.IsDevelopment() ? exception.Message : mapping.Detail,
             Instance = httpContext.Request.Path,
             Type = $"https://httpstatuses.com/{mapping.StatusCode}",
         };
@@ -48,23 +48,42 @@ public sealed class GlobalExceptionHandler(
         exception switch
         {
             ArgumentNullException or ArgumentException =>
-                new ExceptionMapping(StatusCodes.Status400BadRequest, "Bad Request", exception.Message),
+                new ExceptionMapping(
+                    StatusCodes.Status400BadRequest,
+                    "Bad Request",
+                    "The request is invalid."),
 
             UnauthorizedAccessException =>
-                new ExceptionMapping(StatusCodes.Status401Unauthorized, "Unauthorized", exception.Message),
+                new ExceptionMapping(
+                    StatusCodes.Status401Unauthorized,
+                    "Unauthorized",
+                    "Authentication is required."),
 
             KeyNotFoundException =>
-                new ExceptionMapping(StatusCodes.Status404NotFound, "Not Found", exception.Message),
+                new ExceptionMapping(
+                    StatusCodes.Status404NotFound,
+                    "Not Found",
+                    "The requested resource was not found."),
 
-            InvalidOperationException =>
-                new ExceptionMapping(StatusCodes.Status409Conflict, "Conflict", exception.Message),
+            FileNotFoundException =>
+                new ExceptionMapping(
+                    StatusCodes.Status404NotFound,
+                    "Not Found",
+                    "The requested resource was not found."),
 
             NotImplementedException =>
-                new ExceptionMapping(StatusCodes.Status501NotImplemented, "Not Implemented", exception.Message),
+                new ExceptionMapping(
+                    StatusCodes.Status501NotImplemented,
+                    "Not Implemented",
+                    "This operation is not implemented."),
 
             OperationCanceledException =>
-                new ExceptionMapping(499, "Request Cancelled", "The request was cancelled."),
+                new ExceptionMapping(
+                    499,
+                    "Request Cancelled",
+                    "The request was cancelled."),
 
+            // InvalidOperationException and everything else → real 5xx
             _ => new ExceptionMapping(
                 StatusCodes.Status500InternalServerError,
                 "Internal Server Error",

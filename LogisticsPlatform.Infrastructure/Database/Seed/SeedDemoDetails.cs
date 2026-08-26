@@ -1,3 +1,5 @@
+using LogisticsPlatform.Application.Interfaces.Services;
+using LogisticsPlatform.Application.Services;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +36,7 @@ public static class SeedDemoDetails
     {
         await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        IPhotoBlobStore photoBlobStore = scope.ServiceProvider.GetRequiredService<IPhotoBlobStore>();
 
         var now = DateTimeOffset.UtcNow;
 
@@ -42,9 +45,9 @@ public static class SeedDemoDetails
         int ordersAdded = await SeedExtraOrdersAsync(dbContext, now);
         int operationsAdded = await SeedOperationsAsync(dbContext, now);
         int operationCommentsAdded = await SeedOperationCommentsAsync(dbContext, now);
-        int operationPhotosAdded = await SeedOperationPhotosAsync(dbContext);
+        int operationPhotosAdded = await SeedOperationPhotosAsync(dbContext, photoBlobStore);
         int suppliesAdded = await SeedSuppliesAsync(dbContext);
-        int warehousePhotosAdded = await SeedWarehousePhotosAsync(dbContext);
+        int warehousePhotosAdded = await SeedWarehousePhotosAsync(dbContext, photoBlobStore);
         int commentsAdded = await SeedOrderCommentsAsync(dbContext, now);
         int timelineEntriesAdded = await SeedTimelineEntriesAsync(dbContext, now);
 
@@ -215,7 +218,9 @@ public static class SeedDemoDetails
                     {
                         Id = Guid.Parse("a6000000-0000-0000-0000-000000000001"),
                         Kind = "Status",
-                        Text = "DRAFT",
+                        Text = string.Empty,
+                        PreviousStatus = null,
+                        NewStatus = OrderStatus.Draft,
                         CreatedAt = now.AddHours(-2)
                     }
                 }
@@ -372,7 +377,9 @@ public static class SeedDemoDetails
         return added;
     }
 
-    private static async Task<int> SeedOperationPhotosAsync(AppDbContext dbContext)
+    private static async Task<int> SeedOperationPhotosAsync(
+        AppDbContext dbContext,
+        IPhotoBlobStore photoBlobStore)
     {
         var photoId = Guid.Parse("a2200000-0000-0000-0000-000000000001");
         if (await dbContext.OrderOperationPhotos.AnyAsync(x => x.Id == photoId))
@@ -381,14 +388,17 @@ public static class SeedDemoDetails
         if (!await dbContext.OrderOperations.AnyAsync(x => x.Id == Op676LoadingId))
             return 0;
 
+        const string contentType = "image/png";
+        string storageKey = PhotoStorageKeys.ForOperation(Op676LoadingId, photoId, contentType);
+        await photoBlobStore.SaveAsync(storageKey, TinyPng, CancellationToken.None);
+
         dbContext.OrderOperationPhotos.Add(new OrderOperationPhoto
         {
             Id = photoId,
             OperationId = Op676LoadingId,
             FileName = "loading-bay-a.png",
-            ContentType = "image/png",
-            Content = TinyPng,
-            SortOrder = 1
+            ContentType = contentType,
+            StorageKey = storageKey
         });
 
         return 1;
@@ -449,49 +459,38 @@ public static class SeedDemoDetails
         return added;
     }
 
-    private static async Task<int> SeedWarehousePhotosAsync(AppDbContext dbContext)
+    private static async Task<int> SeedWarehousePhotosAsync(
+        AppDbContext dbContext,
+        IPhotoBlobStore photoBlobStore)
     {
-        OrderWarehousePhoto[] photos =
+        (Guid Id, Guid OrderId, string FileName)[] photos =
         [
-            new()
-            {
-                Id = Guid.Parse("a4000000-0000-0000-0000-000000000001"),
-                OrderId = Order672Id,
-                FileName = "warehouse-front.png",
-                ContentType = "image/png",
-                Content = TinyPng,
-                SortOrder = 1
-            },
-            new()
-            {
-                Id = Guid.Parse("a4000000-0000-0000-0000-000000000002"),
-                OrderId = Order672Id,
-                FileName = "warehouse-seal.png",
-                ContentType = "image/png",
-                Content = TinyPng,
-                SortOrder = 2
-            },
-            new()
-            {
-                Id = Guid.Parse("a4000000-0000-0000-0000-000000000003"),
-                OrderId = Order676Id,
-                FileName = "dock-overview.png",
-                ContentType = "image/png",
-                Content = TinyPng,
-                SortOrder = 1
-            }
+            (Guid.Parse("a4000000-0000-0000-0000-000000000001"), Order672Id, "warehouse-front.png"),
+            (Guid.Parse("a4000000-0000-0000-0000-000000000002"), Order672Id, "warehouse-seal.png"),
+            (Guid.Parse("a4000000-0000-0000-0000-000000000003"), Order676Id, "dock-overview.png")
         ];
 
         int added = 0;
-        foreach (OrderWarehousePhoto photo in photos)
+        foreach ((Guid id, Guid orderId, string fileName) in photos)
         {
-            if (await dbContext.OrderWarehousePhotos.AnyAsync(x => x.Id == photo.Id))
+            if (await dbContext.OrderWarehousePhotos.AnyAsync(x => x.Id == id))
                 continue;
 
-            if (!await dbContext.Orders.AnyAsync(o => o.Id == photo.OrderId))
+            if (!await dbContext.Orders.AnyAsync(o => o.Id == orderId))
                 continue;
 
-            dbContext.OrderWarehousePhotos.Add(photo);
+            const string contentType = "image/png";
+            string storageKey = PhotoStorageKeys.ForWarehouse(orderId, id, contentType);
+            await photoBlobStore.SaveAsync(storageKey, TinyPng, CancellationToken.None);
+
+            dbContext.OrderWarehousePhotos.Add(new OrderWarehousePhoto
+            {
+                Id = id,
+                OrderId = orderId,
+                FileName = fileName,
+                ContentType = contentType,
+                StorageKey = storageKey
+            });
             added++;
         }
 
@@ -553,7 +552,9 @@ public static class SeedDemoDetails
                 Id = Guid.Parse("a6000000-0000-0000-0000-000000000010"),
                 OrderId = Order676Id,
                 Kind = "Status",
-                Text = "NEW → IN PROGRESS",
+                Text = string.Empty,
+                PreviousStatus = OrderStatus.New,
+                NewStatus = OrderStatus.InProgress,
                 AuthorName = "System",
                 CreatedAt = now.AddDays(-9)
             },
@@ -580,7 +581,9 @@ public static class SeedDemoDetails
                 Id = Guid.Parse("a6000000-0000-0000-0000-000000000013"),
                 OrderId = Order674Id,
                 Kind = "Status",
-                Text = "IN PROGRESS → ALERT",
+                Text = string.Empty,
+                PreviousStatus = OrderStatus.InProgress,
+                NewStatus = OrderStatus.Alert,
                 AuthorName = "System",
                 CreatedAt = now.AddDays(-7)
             }

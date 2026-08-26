@@ -1,19 +1,22 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Interfaces.Repositories;
+using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.GetWarehousePhoto;
 
-public sealed class GetWarehousePhotoQueryHandler(IOrderDetailsRepository orderDetailsRepository)
+public sealed class GetWarehousePhotoQueryHandler(
+    IOrderWarehousePhotosRepository orderWarehousePhotosRepository,
+    IPhotoBlobStore photoBlobStore)
     : IQueryHandler<GetWarehousePhotoQuery, Result<OrderFileResponse>>
 {
     public async Task<Result<OrderFileResponse>> Handle(
         GetWarehousePhotoQuery query,
         CancellationToken cancellationToken)
     {
-        OrderWarehousePhotoContentData? photo = await orderDetailsRepository.GetWarehousePhotoContentAsync(
+        OrderWarehousePhotoContentData? photo = await orderWarehousePhotosRepository.GetWarehousePhotoContentAsync(
             query.OrderId,
             query.PhotoId,
             cancellationToken);
@@ -24,7 +27,14 @@ public sealed class GetWarehousePhotoQueryHandler(IOrderDetailsRepository orderD
         var file = new OrderFileResponse(
             photo.FileName,
             photo.ContentType,
-            (stream, ct) => stream.WriteAsync(photo.Content, ct).AsTask());
+            async (stream, ct) =>
+            {
+                await using Stream? source = await photoBlobStore.OpenReadAsync(photo.StorageKey, ct);
+                if (source is null)
+                    throw new FileNotFoundException("Photo blob is missing.", photo.StorageKey);
+
+                await source.CopyToAsync(stream, ct);
+            });
 
         return Result.Success(file);
     }

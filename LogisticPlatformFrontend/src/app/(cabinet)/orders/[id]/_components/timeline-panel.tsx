@@ -24,7 +24,7 @@ export function TimelinePanel({ orderId, open, onClose }: Props) {
 
   const addMutation = useMutation({
     mutationFn: () =>
-      ordersService.addTimelineEntry(orderId, { text, authorName: "You" }),
+      ordersService.addTimelineEntry(orderId, { text }),
     onSuccess: async () => {
       setText("");
       setError(null);

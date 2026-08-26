@@ -1,26 +1,26 @@
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Orders.Detail;
 using LogisticsPlatform.Application.Extensions.Mapping.OrderDetails;
 using LogisticsPlatform.Application.Interfaces.Repositories;
 using LogisticsPlatform.Application.Models.Orders;
-using LogisticsPlatform.Domain.DTO.Orders.Detail;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddOperationComment;
 
-public sealed class AddOperationCommentCommandHandler(IOrderDetailsRepository orderDetailsRepository)
+public sealed class AddOperationCommentCommandHandler(IOrderOperationsRepository orderOperationsRepository)
     : ICommandHandler<AddOperationCommentCommand, Result<OrderCommentResponse>>
 {
     public async Task<Result<OrderCommentResponse>> Handle(
         AddOperationCommentCommand command,
         CancellationToken cancellationToken)
     {
-        if (!await orderDetailsRepository.OperationExistsAsync(
+        if (!await orderOperationsRepository.OperationExistsAsync(
                 command.OrderId,
                 command.OperationId,
                 cancellationToken))
             return Result<OrderCommentResponse>.NotFound();
 
-        OrderOperationCommentData data = await orderDetailsRepository.AddOperationCommentAsync(
+        OrderOperationCommentData data = await orderOperationsRepository.AddOperationCommentAsync(
             command.OperationId,
             command.Text,
             command.AuthorName,

@@ -1,14 +1,16 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
+using LogisticsPlatform.Application.DTO.Dashboard.ActiveOrders;
+using LogisticsPlatform.Application.DTO.Dashboard.Activity;
 using LogisticsPlatform.Application.UseCases.Dashboard.GetActiveOrders;
 using LogisticsPlatform.Application.UseCases.Dashboard.GetActivity;
 using LogisticsPlatform.Application.UseCases.Dashboard.GetMetrics;
-using LogisticsPlatform.Domain.DTO.Dashboard.ActiveOrders;
-using LogisticsPlatform.Domain.DTO.Dashboard.Activity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
 
-[Route("api/dashboard")]
+[Authorize]
+[Route(ApiRoutes.ApiRoutes.Dashboard)]
 public sealed class DashboardController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
     [HttpGet("metrics")]

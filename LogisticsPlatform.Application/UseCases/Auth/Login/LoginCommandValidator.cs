@@ -8,7 +8,7 @@ public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
     {
         RuleFor(x => x.Username)
             .NotEmpty();
-
+        
         RuleFor(x => x.Password)
             .NotEmpty();
     }

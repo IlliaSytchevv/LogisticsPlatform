@@ -6,18 +6,26 @@ public static class RefreshCookie
 
     public static void Set(HttpResponse response, string refreshToken, DateTime expiresUtc)
     {
-        response.Cookies.Append(Name, refreshToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = false,
-            SameSite = SameSiteMode.Lax,
-            Expires = expiresUtc,
-            Path = "/"
-        });
+        response.Cookies.Append(Name, refreshToken, BuildOptions(response, expiresUtc));
     }
 
     public static void Clear(HttpResponse response)
     {
-        response.Cookies.Delete(Name, new CookieOptions { Path = "/" });
+        response.Cookies.Delete(Name, BuildOptions(response, expiresUtc: null));
+    }
+
+    private static CookieOptions BuildOptions(HttpResponse response, DateTime? expiresUtc)
+    {
+        var environment = response.HttpContext.RequestServices
+            .GetRequiredService<IHostEnvironment>();
+
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !environment.IsDevelopment(),
+            SameSite = SameSiteMode.Lax,
+            Expires = expiresUtc,
+            Path = "/"
+        };
     }
 }

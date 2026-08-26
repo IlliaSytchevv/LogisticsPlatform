@@ -1,9 +1,15 @@
 namespace LogisticsPlatform.Application.Models.Dashboard;
 
 public sealed record DashboardActivityData(
-    IReadOnlyList<CompletedActivityRow> CurrentPeriodRows,
+    IReadOnlyList<CompletedActivityBucketAggregate> BucketAggregates,
     int PreviousPeriodCompletedCount);
 
-public sealed record CompletedActivityRow(
-    DateTimeOffset CompletedAt,
+public sealed record CompletedActivityBucketAggregate(
+    string Label,
+    int CompletedCount,
     long SpendCents);
+
+public sealed record ActivityBucket(
+    string Label,
+    DateTimeOffset Start,
+    DateTimeOffset End);

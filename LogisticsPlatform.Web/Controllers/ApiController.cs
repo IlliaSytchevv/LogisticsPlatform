@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Ardalis.Result;
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using Microsoft.AspNetCore.Mvc;
@@ -9,31 +10,44 @@ public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
 {
     protected IDispatcher Dispatcher { get; } = dispatcher;
 
-    protected IActionResult GetActionResult(Result result)
-    {
-        return result.Status switch
-        {
-            ResultStatus.Ok => Ok(),
-            ResultStatus.Invalid => BadRequest(result.ValidationErrors),
-            ResultStatus.NotFound => NotFound(result.Errors),
-            ResultStatus.Unauthorized => Unauthorized(),
-            ResultStatus.Forbidden => Forbid(),
-            ResultStatus.Error => BadRequest(result.Errors),
-            _ => BadRequest(result.Errors)
-        };
-    }
+    protected string? GetCurrentUserDisplayName() =>
+        User.FindFirstValue(ClaimTypes.Name);
 
-    protected IActionResult GetActionResult<T>(Result<T> result)
-    {
-        return result.Status switch
+    protected IActionResult GetActionResult(Result result) =>
+        MapStatus(
+            result.Status,
+            onOk: () => Ok(),
+            onCreated: () => StatusCode(StatusCodes.Status201Created),
+            validationErrors: result.ValidationErrors,
+            errors: result.Errors);
+
+    protected IActionResult GetActionResult<T>(Result<T> result) =>
+        MapStatus(
+            result.Status,
+            onOk: () => Ok(result.Value),
+            onCreated: () => StatusCode(StatusCodes.Status201Created, result.Value),
+            validationErrors: result.ValidationErrors,
+            errors: result.Errors);
+
+    private IActionResult MapStatus(
+        ResultStatus status,
+        Func<IActionResult> onOk,
+        Func<IActionResult> onCreated,
+        IEnumerable<ValidationError> validationErrors,
+        IEnumerable<string> errors) =>
+        status switch
         {
-            ResultStatus.Ok => Ok(result.Value),
-            ResultStatus.Invalid => BadRequest(result.ValidationErrors),
-            ResultStatus.NotFound => NotFound(result.Errors),
+            ResultStatus.Ok => onOk(),
+            ResultStatus.Created => onCreated(),
+            ResultStatus.NoContent => NoContent(),
+            ResultStatus.Invalid => BadRequest(validationErrors),
+            ResultStatus.NotFound => NotFound(errors),
             ResultStatus.Unauthorized => Unauthorized(),
             ResultStatus.Forbidden => Forbid(),
-            ResultStatus.Error => BadRequest(result.Errors),
-            _ => BadRequest(result.Errors)
+            ResultStatus.Conflict => Conflict(errors),
+            ResultStatus.Error => BadRequest(errors),
+            ResultStatus.CriticalError => StatusCode(StatusCodes.Status500InternalServerError, errors),
+            ResultStatus.Unavailable => StatusCode(StatusCodes.Status503ServiceUnavailable, errors),
+            _ => StatusCode(StatusCodes.Status500InternalServerError, errors)
         };
-    }
 }

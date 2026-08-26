@@ -128,7 +128,6 @@ export type OrderPhoto = {
   id: string;
   fileName: string;
   contentType: string;
-  sortOrder: number;
   downloadUrl: string;
 };
 
@@ -254,5 +253,4 @@ export type UpdateOrderSupplyRequest = AddOrderSupplyRequest;
 
 export type AddTextRequest = {
   text: string;
-  authorName?: string | null;
 };
