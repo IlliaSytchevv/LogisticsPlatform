@@ -12,6 +12,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Production image uses webpack build (turbopack is for local `next dev` only).
 RUN npm run build
 
 FROM node:22-alpine AS final
