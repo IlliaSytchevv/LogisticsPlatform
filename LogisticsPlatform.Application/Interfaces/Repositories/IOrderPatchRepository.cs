@@ -5,7 +5,14 @@ namespace LogisticsPlatform.Application.Interfaces.Repositories;
 
 public interface IOrderPatchRepository
 {
-    Task<OrderStatus?> GetStatusAsync(Guid orderId, CancellationToken cancellationToken);
+    Task<(OrderStatus Status, string Number)?> GetStatusAndNumberAsync(
+        Guid orderId,
+        CancellationToken cancellationToken);
+
+    Task<bool> NumberExistsAsync(
+        string number,
+        Guid excludeOrderId,
+        CancellationToken cancellationToken);
 
     Task<bool> PatchOrderAsync(OrderDetailPatchData patch, CancellationToken cancellationToken);
 }

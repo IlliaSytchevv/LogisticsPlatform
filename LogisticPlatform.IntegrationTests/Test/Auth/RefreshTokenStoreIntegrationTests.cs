@@ -161,7 +161,7 @@ public sealed class RefreshTokenStoreIntegrationTests(LogisticsApiFixture fixtur
 
         HttpResponseMessage loginResponse = await client.PostAsJsonAsync(
             "/api/v1/auth/login",
-            new LoginRequest("testuser", "Test123!"));
+            new LoginRequest("AdminUser", "Test123!"));
         loginResponse.EnsureSuccessStatusCode();
 
         await using AsyncServiceScope scope = fixture.Factory.Services.CreateAsyncScope();

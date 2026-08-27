@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ordersService } from "@/api/services/orders.service";
+import { useSession } from "@/hooks/use-session";
 import {
   orderCommentsOptions,
   ordersKeys,
@@ -18,6 +19,7 @@ type Props = {
 
 export function CommentsPanel({ orderId, open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const { canWrite } = useSession();
   const { data = [], isLoading } = useQuery({
     ...orderCommentsOptions(orderId),
     enabled: open && Boolean(orderId),
@@ -55,22 +57,26 @@ export function CommentsPanel({ orderId, open, onClose }: Props) {
         </div>
       )}
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={3}
-        placeholder="Add a comment…"
-        style={{ width: "100%", marginBottom: 8 }}
-      />
-      {error && <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>{error}</div>}
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={!text.trim() || addMutation.isPending}
-        onClick={() => addMutation.mutate()}
-      >
-        {addMutation.isPending ? "Saving…" : "Add comment"}
-      </button>
+      {canWrite ? (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={3}
+            placeholder="Add a comment…"
+            style={{ width: "100%", marginBottom: 8 }}
+          />
+          {error && <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>{error}</div>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!text.trim() || addMutation.isPending}
+            onClick={() => addMutation.mutate()}
+          >
+            {addMutation.isPending ? "Saving…" : "Add comment"}
+          </button>
+        </>
+      ) : null}
     </DetailModal>
   );
 }

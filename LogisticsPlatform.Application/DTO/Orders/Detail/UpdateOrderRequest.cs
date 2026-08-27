@@ -3,6 +3,7 @@ using LogisticsPlatform.Domain.Enums;
 namespace LogisticsPlatform.Application.DTO.Orders.Detail;
 
 public sealed record UpdateOrderRequest(
+    string? Number,
     string? CustomerName,
     string? PrimaryReference,
     int? DeclaredQty,
@@ -16,4 +17,5 @@ public sealed record UpdateOrderRequest(
     string? WarehouseNote,
     string? StockStatusLabel,
     string? LoadingStatusLabel,
-    OrderStatus? Status);
+    OrderStatus? Status,
+    bool? AwaitingClientAction);

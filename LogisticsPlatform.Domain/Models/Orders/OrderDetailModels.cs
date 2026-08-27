@@ -4,6 +4,7 @@ namespace LogisticsPlatform.Application.Models.Orders;
 
 public sealed record OrderDetailPatchData(
     Guid OrderId,
+    string? Number,
     string? CustomerName,
     string? PrimaryReference,
     int? DeclaredQty,
@@ -17,7 +18,8 @@ public sealed record OrderDetailPatchData(
     string? WarehouseNote,
     string? StockStatusLabel,
     string? LoadingStatusLabel,
-    OrderStatus? Status);
+    OrderStatus? Status,
+    bool? AwaitingClientAction);
 
 public sealed record OrderOperationData(
     Guid Id,
@@ -118,6 +120,7 @@ public sealed record OrderDetailsData(
     string? LoadingStatusLabel,
     bool HasAlert,
     string? AlertReason,
+    bool AwaitingClientAction,
     string? DockCode,
     string? DockBay,
     DateTimeOffset? DockAssignedAt,

@@ -6,6 +6,20 @@ public interface IStripeCheckoutService
         StripeCheckoutSessionRequest request,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Returns the hosted checkout URL when the session is still open; otherwise null.
+    /// </summary>
+    Task<string?> TryGetOpenCheckoutUrlAsync(
+        string stripeSessionId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Best-effort expire. No-ops when the session is already complete/expired.
+    /// </summary>
+    Task ExpireCheckoutSessionAsync(
+        string stripeSessionId,
+        CancellationToken cancellationToken);
+
     StripeWebhookEventResult ParseWebhookEvent(string json, string stripeSignatureHeader);
 }
 

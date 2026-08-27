@@ -6,6 +6,7 @@ namespace LogisticPlatform.IntegrationTests.Fixtures;
 public sealed class LogisticsApiFixture : IAsyncLifetime
 {
     private readonly PostgresContainersFixture _postgres = new();
+    private readonly RedisContainersFixture _redis = new();
     private CustomWebApplicationFactory? _factory;
     private HttpClient? _client;
 
@@ -20,8 +21,9 @@ public sealed class LogisticsApiFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _postgres.InitializeAsync();
+        await _redis.InitializeAsync();
 
-        _factory = new CustomWebApplicationFactory(_postgres.ConnectionString);
+        _factory = new CustomWebApplicationFactory(_postgres.ConnectionString, _redis.ConnectionString);
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
@@ -41,6 +43,7 @@ public sealed class LogisticsApiFixture : IAsyncLifetime
         }
 
         await _postgres.DisposeAsync();
+        await _redis.DisposeAsync();
     }
 }
 

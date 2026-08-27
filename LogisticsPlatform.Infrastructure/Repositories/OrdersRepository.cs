@@ -192,7 +192,7 @@ public sealed class OrdersRepository(
         var entity = new Order
         {
             Id = Guid.NewGuid(),
-            Number = $"DRAFT-{Guid.NewGuid():N[..8].ToUpperInvariant()}",
+            Number = $"DRAFT-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
             Type = type,
             Status = OrderStatus.Draft,
             HubId = hubId,

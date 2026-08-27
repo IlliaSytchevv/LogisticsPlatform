@@ -57,3 +57,19 @@ export const ORDER_STATUS_OPTIONS = [
   { value: 5 as const, label: "Completed" },
   { value: 6 as const, label: "Closed" },
 ];
+
+/** Mirrors backend OrderStatusTransitions — current status + allowed next. */
+const ORDER_STATUS_NEXT: Record<number, number[]> = {
+  1: [2, 6], // Draft → New, Closed
+  2: [3, 4, 6], // New → InProgress, Alert, Closed
+  3: [4, 5, 6], // InProgress → Alert, Completed, Closed
+  4: [3, 5, 6], // Alert → InProgress, Completed, Closed
+  5: [6], // Completed → Closed
+  6: [], // Closed → none
+};
+
+export function allowedOrderStatusOptions(current: number) {
+  const next = ORDER_STATUS_NEXT[current] ?? [];
+  const allowed = new Set<number>([current, ...next]);
+  return ORDER_STATUS_OPTIONS.filter((o) => allowed.has(o.value));
+}

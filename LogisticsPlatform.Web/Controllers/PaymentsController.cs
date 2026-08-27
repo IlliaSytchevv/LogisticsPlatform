@@ -9,7 +9,7 @@ namespace LogisticsPlatform.Controllers;
 [Route(ApiRoutes.ApiRoutes.Payments)]
 public sealed class PaymentsController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("orders/{orderId:guid}/checkout")]
     public async Task<IActionResult> CreateCheckout(Guid orderId, CancellationToken cancellationToken)
     {

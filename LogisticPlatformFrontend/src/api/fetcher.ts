@@ -1,4 +1,5 @@
 import { ApiError } from "@/types/auth";
+import { formatApiErrorMessage } from "@/lib/api/errors";
 
 type FetcherOptions = RequestInit & {
   skipAuth?: boolean;
@@ -34,11 +35,7 @@ export async function fetcher<T>(
     } catch {
       // keep raw
     }
-    throw new ApiError(
-      typeof body === "string" && body ? body : `HTTP ${response.status}`,
-      response.status,
-      body,
-    );
+    throw new ApiError(formatApiErrorMessage(body, response.status), response.status, body);
   }
 
   if (response.status === 204) return undefined as T;

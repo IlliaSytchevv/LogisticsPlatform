@@ -6,5 +6,7 @@ public interface IOrderEditLock
 
     Task<bool> HeartbeatAsync(Guid orderId, Guid userId, CancellationToken cancellationToken);
 
+    Task<bool> IsHeldByAsync(Guid orderId, Guid userId, CancellationToken cancellationToken);
+
     Task ReleaseAsync(Guid orderId, Guid userId, CancellationToken cancellationToken);
 }

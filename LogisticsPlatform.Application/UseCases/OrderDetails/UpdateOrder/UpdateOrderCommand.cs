@@ -7,6 +7,8 @@ namespace LogisticsPlatform.Application.UseCases.OrderDetails.UpdateOrder;
 
 public sealed record UpdateOrderCommand(
     Guid OrderId,
+    Guid UserId,
+    string? Number,
     string? CustomerName,
     string? PrimaryReference,
     int? DeclaredQty,
@@ -20,4 +22,5 @@ public sealed record UpdateOrderCommand(
     string? WarehouseNote,
     string? StockStatusLabel,
     string? LoadingStatusLabel,
-    OrderStatus? Status) : ICommand<Result<UpdateOrderResponse>>;
+    OrderStatus? Status,
+    bool? AwaitingClientAction) : ICommand<Result<UpdateOrderResponse>>;

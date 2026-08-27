@@ -7,13 +7,18 @@ using LogisticsPlatform.Application.Models.Orders;
 
 namespace LogisticsPlatform.Application.UseCases.OrderDetails.UpdateSupply;
 
-public sealed class UpdateOrderSupplyCommandHandler(IOrderSuppliesRepository orderSuppliesRepository)
+public sealed class UpdateOrderSupplyCommandHandler(
+    IOrderPaymentsRepository orderPaymentsRepository,
+    IOrderSuppliesRepository orderSuppliesRepository)
     : ICommandHandler<UpdateOrderSupplyCommand, Result<OrderSupplyResponse>>
 {
     public async Task<Result<OrderSupplyResponse>> Handle(
         UpdateOrderSupplyCommand command,
         CancellationToken cancellationToken)
     {
+        if (await orderPaymentsRepository.HasPaidAsync(command.OrderId, cancellationToken))
+            return Result<OrderSupplyResponse>.Conflict("Cannot modify supplies on a paid order.");
+
         OrderSupplyData? data = await orderSuppliesRepository.UpdateSupplyAsync(
             command.OrderId,
             command.SupplyId,

@@ -1,19 +1,21 @@
 using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Domain.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Stripe.Checkout;
 
 namespace LogisticsPlatform.Infrastructure.Stripe;
 
-public sealed class StripeCheckoutService(IOptions<StripeOptions> stripeOptions) : IStripeCheckoutService
+public sealed class StripeCheckoutService(
+    IOptions<StripeOptions> stripeOptions,
+    ILogger<StripeCheckoutService> logger) : IStripeCheckoutService
 {
     public async Task<StripeCheckoutSessionResult> CreateCheckoutSessionAsync(
         StripeCheckoutSessionRequest request,
         CancellationToken cancellationToken)
     {
-        StripeOptions options = stripeOptions.Value;
-        StripeConfiguration.ApiKey = options.SecretKey;
+        EnsureApiKey();
 
         var sessionOptions = new SessionCreateOptions
         {
@@ -53,6 +55,58 @@ public sealed class StripeCheckoutService(IOptions<StripeOptions> stripeOptions)
         }
 
         return new StripeCheckoutSessionResult(session.Id, session.Url);
+    }
+
+    public async Task<string?> TryGetOpenCheckoutUrlAsync(
+        string stripeSessionId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(stripeSessionId))
+        {
+            return null;
+        }
+
+        EnsureApiKey();
+
+        try
+        {
+            var service = new SessionService();
+            Session session = await service.GetAsync(stripeSessionId, cancellationToken: cancellationToken);
+
+            if (!string.Equals(session.Status, "open", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(session.Url) ? null : session.Url;
+        }
+        catch (StripeException ex)
+        {
+            logger.LogWarning(ex, "Failed to load Stripe checkout session {SessionId}", stripeSessionId);
+            return null;
+        }
+    }
+
+    public async Task ExpireCheckoutSessionAsync(
+        string stripeSessionId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(stripeSessionId))
+        {
+            return;
+        }
+
+        EnsureApiKey();
+
+        try
+        {
+            var service = new SessionService();
+            await service.ExpireAsync(stripeSessionId, cancellationToken: cancellationToken);
+        }
+        catch (StripeException ex)
+        {
+            logger.LogInformation(ex, "Stripe session {SessionId} was not expired (likely already closed)", stripeSessionId);
+        }
     }
 
     public StripeWebhookEventResult ParseWebhookEvent(string json, string stripeSignatureHeader)
@@ -105,5 +159,10 @@ public sealed class StripeCheckoutService(IOptions<StripeOptions> stripeOptions)
                 null,
                 null);
         }
+    }
+
+    private void EnsureApiKey()
+    {
+        StripeConfiguration.ApiKey = stripeOptions.Value.SecretKey;
     }
 }

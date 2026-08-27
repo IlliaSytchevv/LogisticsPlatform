@@ -3,6 +3,7 @@ using LogisticsPlatform.Application.Interfaces.Services;
 using LogisticsPlatform.Application.Models.Orders;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
+using LogisticsPlatform.Domain.Orders;
 using LogisticsPlatform.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,20 +13,37 @@ public sealed class OrderPatchRepository(
     AppDbContext dbContext,
     INotificationsFeedCacheInvalidator notificationsFeedCacheInvalidator) : IOrderPatchRepository
 {
-    public async Task<OrderStatus?> GetStatusAsync(Guid orderId, CancellationToken cancellationToken)
+    public async Task<(OrderStatus Status, string Number)?> GetStatusAndNumberAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
     {
-        return await dbContext.Orders
+        var row = await dbContext.Orders
             .AsNoTracking()
             .Where(o => o.Id == orderId)
-            .Select(o => (OrderStatus?)o.Status)
+            .Select(o => new { o.Status, o.Number })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : (row.Status, row.Number);
     }
+
+    public Task<bool> NumberExistsAsync(
+        string number,
+        Guid excludeOrderId,
+        CancellationToken cancellationToken) =>
+        dbContext.Orders
+            .AsNoTracking()
+            .AnyAsync(
+                o => o.Id != excludeOrderId && o.Number == number,
+                cancellationToken);
 
     public async Task<bool> PatchOrderAsync(OrderDetailPatchData patch, CancellationToken cancellationToken)
     {
         Order? order = await dbContext.Orders.FirstOrDefaultAsync(o => o.Id == patch.OrderId, cancellationToken);
         if (order is null)
             return false;
+
+        if (patch.Number is not null)
+            order.Number = OrderNumberRules.Normalize(patch.Number);
 
         if (patch.CustomerName is not null) order.Cabinet.CustomerName = patch.CustomerName;
         if (patch.PrimaryReference is not null) order.Cabinet.PrimaryReference = patch.PrimaryReference;
@@ -40,6 +58,15 @@ public sealed class OrderPatchRepository(
         if (patch.WarehouseNote is not null) order.Dock.WarehouseNote = patch.WarehouseNote;
         if (patch.StockStatusLabel is not null) order.Cabinet.StockStatusLabel = patch.StockStatusLabel;
         if (patch.LoadingStatusLabel is not null) order.Cabinet.LoadingStatusLabel = patch.LoadingStatusLabel;
+        if (patch.AwaitingClientAction is not null)
+        {
+            order.NextAction.AwaitingClientAction = patch.AwaitingClientAction.Value;
+            if (patch.AwaitingClientAction.Value
+                && string.IsNullOrWhiteSpace(order.NextAction.NextActionLabel))
+            {
+                order.NextAction.NextActionLabel = "Continue editing";
+            }
+        }
 
         if (patch.Status is not null && patch.Status.Value != order.Status)
         {

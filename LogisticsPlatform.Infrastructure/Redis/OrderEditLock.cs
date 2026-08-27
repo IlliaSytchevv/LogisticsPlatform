@@ -7,6 +7,22 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(45);
 
+    // Only extend the lock if it's still yours (atomic: no race between read and expire).
+    private const string RenewIfOwnerScript = """
+        if redis.call('GET', KEYS[1]) == ARGV[1] then
+          return redis.call('EXPIRE', KEYS[1], ARGV[2])
+        end
+        return 0
+        """;
+
+    // Only release the lock if it's still yours (atomic: won't clear another user's lock).
+    private const string ReleaseIfOwnerScript = """
+        if redis.call('GET', KEYS[1]) == ARGV[1] then
+          return redis.call('DEL', KEYS[1])
+        end
+        return 0
+        """;
+
     private IDatabase Db => multiplexer.GetDatabase();
 
     public async Task<bool> TryAcquireAsync(
@@ -16,20 +32,19 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
     {
         string key = Key(orderId);
         string token = userId.ToString("D");
+        int ttlSeconds = (int)Ttl.TotalSeconds;
 
-        RedisValue current = await Db.StringGetAsync(key);
-        if (current.HasValue)
+        if (await Db.StringSetAsync(key, token, Ttl, When.NotExists))
         {
-            if (string.Equals(current.ToString(), token, StringComparison.Ordinal))
-            {
-                await Db.KeyExpireAsync(key, Ttl);
-                return true;
-            }
-
-            return false;
+            return true;
         }
 
-        return await Db.StringSetAsync(key, token, Ttl, When.NotExists);
+        RedisResult renewed = await Db.ScriptEvaluateAsync(
+            RenewIfOwnerScript,
+            [key],
+            [token, ttlSeconds]);
+
+        return (int)renewed == 1;
     }
 
     public async Task<bool> HeartbeatAsync(
@@ -39,14 +54,27 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
     {
         string key = Key(orderId);
         string token = userId.ToString("D");
+        int ttlSeconds = (int)Ttl.TotalSeconds;
+
+        RedisResult renewed = await Db.ScriptEvaluateAsync(
+            RenewIfOwnerScript,
+            [key],
+            [token, ttlSeconds]);
+
+        return (int)renewed == 1;
+    }
+
+    public async Task<bool> IsHeldByAsync(
+        Guid orderId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        string key = Key(orderId);
+        string token = userId.ToString("D");
 
         RedisValue current = await Db.StringGetAsync(key);
-        if (!current.HasValue || !string.Equals(current.ToString(), token, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        return await Db.KeyExpireAsync(key, Ttl);
+        
+        return current.HasValue && string.Equals(current.ToString(), token, StringComparison.Ordinal);
     }
 
     public async Task ReleaseAsync(
@@ -57,13 +85,10 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
         string key = Key(orderId);
         string token = userId.ToString("D");
 
-        RedisValue current = await Db.StringGetAsync(key);
-        if (!current.HasValue || !string.Equals(current.ToString(), token, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        await Db.KeyDeleteAsync(key);
+        await Db.ScriptEvaluateAsync(
+            ReleaseIfOwnerScript,
+            [key],
+            [token]);
     }
 
     private static string Key(Guid orderId)

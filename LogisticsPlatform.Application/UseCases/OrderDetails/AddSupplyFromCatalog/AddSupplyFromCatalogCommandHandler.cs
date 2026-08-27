@@ -10,6 +10,7 @@ namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddSupplyFromCatal
 
 public sealed class AddSupplyFromCatalogCommandHandler(
     IOrderAccessRepository orderAccessRepository,
+    IOrderPaymentsRepository orderPaymentsRepository,
     IOrderSuppliesRepository orderSuppliesRepository,
     ISupplyCatalogRepository supplyCatalogRepository)
     : ICommandHandler<AddSupplyFromCatalogCommand, Result<OrderSupplyResponse>>
@@ -20,6 +21,9 @@ public sealed class AddSupplyFromCatalogCommandHandler(
     {
         if (!await orderAccessRepository.ExistsAsync(command.OrderId, cancellationToken))
             return Result<OrderSupplyResponse>.NotFound();
+
+        if (await orderPaymentsRepository.HasPaidAsync(command.OrderId, cancellationToken))
+            return Result<OrderSupplyResponse>.Conflict("Cannot modify supplies on a paid order.");
 
         SupplyCatalogItemInternalData? catalogItem = await supplyCatalogRepository.GetByIdAsync(
             command.CatalogItemId,

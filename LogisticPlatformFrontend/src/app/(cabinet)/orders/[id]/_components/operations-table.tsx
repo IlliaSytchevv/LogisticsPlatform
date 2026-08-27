@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ordersService } from "@/api/services/orders.service";
 import type { OrderOperation } from "@/types/orders";
+import { useSession } from "@/hooks/use-session";
 import { ordersKeys } from "../../_hooks/orders-queries";
 import { formatDetailDateTime } from "../_lib/format";
 import { AddOperationModal } from "./add-operation-modal";
@@ -18,6 +19,7 @@ type Props = {
 
 export function OperationsTable({ orderId, operations, defaultTrailer }: Props) {
   const queryClient = useQueryClient();
+  const { canWrite, loading: sessionLoading } = useSession();
   const [addOpen, setAddOpen] = useState(false);
   const [commentsOp, setCommentsOp] = useState<OrderOperation | null>(null);
   const [photosOp, setPhotosOp] = useState<OrderOperation | null>(null);
@@ -36,14 +38,16 @@ export function OperationsTable({ orderId, operations, defaultTrailer }: Props) 
       <div className="xd-table-wrap">
         <div className="xd-table-head">
           <div style={{ fontWeight: 700, color: "#1F2A3A" }}>Operations</div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: 12, padding: "4px 10px" }}
-            onClick={() => setAddOpen(true)}
-          >
-            + Operation
-          </button>
+          {!sessionLoading && canWrite ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: 12, padding: "4px 10px" }}
+              onClick={() => setAddOpen(true)}
+            >
+              + Operation
+            </button>
+          ) : null}
         </div>
         {error && (
           <div style={{ padding: "8px 14px", color: "#DC2626", fontSize: 12 }}>{error}</div>
@@ -119,20 +123,22 @@ export function OperationsTable({ orderId, operations, defaultTrailer }: Props) 
                       >
                         📷 {op.photoCount}
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: "2px 6px", fontSize: 11 }}
-                        title="Delete"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => {
-                          if (confirm(`Delete operation “${op.typeLabel}”?`)) {
-                            deleteMutation.mutate(op.id);
-                          }
-                        }}
-                      >
-                        🗑
-                      </button>
+                      {!sessionLoading && canWrite ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: "2px 6px", fontSize: 11 }}
+                          title="Delete"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            if (confirm(`Delete operation “${op.typeLabel}”?`)) {
+                              deleteMutation.mutate(op.id);
+                            }
+                          }}
+                        >
+                          🗑
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 );

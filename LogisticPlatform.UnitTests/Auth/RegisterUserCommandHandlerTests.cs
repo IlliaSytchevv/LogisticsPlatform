@@ -33,7 +33,7 @@ public sealed class RegisterUserCommandHandlerTests
             }));
 
         Result<RegisterResponse> result = await _sut.Handle(
-            new RegisterUserCommand("Jane Doe", "jane@test.local", "Test123!", "User"),
+            new RegisterUserCommand("Jane Doe", "jane@test.local", "Test123!", "Dispatcher"),
             CancellationToken.None);
 
         result.Status.ShouldBe(ResultStatus.Invalid);
@@ -67,7 +67,7 @@ public sealed class RegisterUserCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldMapNonAdminToDispatcher_WhenRoleIsUser()
+    public async Task Handle_ShouldMapDriverRole_WhenRoleIsDriver()
     {
         ApplicationUser? created = null;
         
@@ -76,16 +76,16 @@ public sealed class RegisterUserCommandHandlerTests
             .Callback<ApplicationUser, string>((user, _) => created = user)
             .ReturnsAsync(IdentityResult.Success);
         _users
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"))
+            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Driver"))
             .Returns(Task.CompletedTask);
 
         var result = await _sut.Handle(
-            new RegisterUserCommand("Solo", "solo@test.local", "Test123!", "User"),
+            new RegisterUserCommand("Solo", "solo@test.local", "Test123!", "Driver"),
             CancellationToken.None);
 
         result.IsSuccess.ShouldBeTrue();
         created.ShouldNotBeNull();
-        created!.Role.ShouldBe(UserRole.Dispatcher);
+        created!.Role.ShouldBe(UserRole.Driver);
         created.Initials.ShouldBe("SO");
     }
 
@@ -99,14 +99,15 @@ public sealed class RegisterUserCommandHandlerTests
             .Callback<ApplicationUser, string>((user, _) => created = user)
             .ReturnsAsync(IdentityResult.Success);
         _users
-            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"))
+            .Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Dispatcher"))
             .Returns(Task.CompletedTask);
 
         await _sut.Handle(
-            new RegisterUserCommand("A", "a@test.local", "Test123!", "User"),
+            new RegisterUserCommand("A", "a@test.local", "Test123!", "Dispatcher"),
             CancellationToken.None);
 
         created.ShouldNotBeNull();
         created!.Initials.ShouldBe("A");
+        created.Role.ShouldBe(UserRole.Dispatcher);
     }
 }

@@ -9,6 +9,7 @@ namespace LogisticsPlatform.Application.UseCases.OrderDetails.AddSupply;
 
 public sealed class AddOrderSupplyCommandHandler(
     IOrderAccessRepository orderAccessRepository,
+    IOrderPaymentsRepository orderPaymentsRepository,
     IOrderSuppliesRepository orderSuppliesRepository)
     : ICommandHandler<AddOrderSupplyCommand, Result<OrderSupplyResponse>>
 {
@@ -18,6 +19,9 @@ public sealed class AddOrderSupplyCommandHandler(
     {
         if (!await orderAccessRepository.ExistsAsync(command.OrderId, cancellationToken))
             return Result<OrderSupplyResponse>.NotFound();
+
+        if (await orderPaymentsRepository.HasPaidAsync(command.OrderId, cancellationToken))
+            return Result<OrderSupplyResponse>.Conflict("Cannot modify supplies on a paid order.");
 
         OrderSupplyData data = await orderSuppliesRepository.AddSupplyAsync(
             command.OrderId,

@@ -11,7 +11,6 @@ import { useLogout } from "@/hooks/use-logout";
 
 type Props = {
   children: React.ReactNode;
-  ordersBadge?: number;
   showNewOrder?: boolean;
   searchPlaceholder?: string;
 };
@@ -25,7 +24,6 @@ function initials(name: string) {
 
 export function FreittyShell({
   children,
-  ordersBadge = 3,
   showNewOrder = false,
   searchPlaceholder = "Search orders by number, ref, hub, carrier…",
 }: Props) {
@@ -54,7 +52,6 @@ export function FreittyShell({
           <li className={ordersActive ? "active" : undefined}>
             <Link href="/dashboard" style={{ display: "contents" }}>
               📦 Orders
-              {ordersBadge > 0 ? <span className="badge">{ordersBadge}</span> : null}
             </Link>
           </li>
           <li className={settingsActive ? "active" : undefined}>

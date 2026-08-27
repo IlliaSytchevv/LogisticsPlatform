@@ -4,6 +4,8 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { FoeSupplyPicker, picksToLines } from "@/components/freitty/foe-supply-picker";
+import { ValidationErrorBanner } from "@/components/freitty/validation-error-banner";
+import { getErrorIssues, type ApiValidationIssue } from "@/lib/api/errors";
 import { ordersService } from "@/api/services/orders.service";
 import { suppliesService } from "@/api/services/supplies.service";
 import type { OrderType } from "@/types/orders";
@@ -39,7 +41,7 @@ export function NewOrderModal({ open, onClose }: Props) {
   const [destinationRegion, setDestinationRegion] = useState("ON");
   const [builderDelegation, setBuilderDelegation] = useState(false);
   const [picks, setPicks] = useState<Record<string, number>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [errorIssues, setErrorIssues] = useState<ApiValidationIssue[] | null>(null);
 
   const hubs = options?.hubs ?? [];
   const effectiveHubId = hubId || hubs[0]?.id || "";
@@ -63,14 +65,14 @@ export function NewOrderModal({ open, onClose }: Props) {
       router.push(`/orders/${created.id}`);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : "Failed to create order");
+      setErrorIssues(getErrorIssues(err));
     },
   });
 
   function resetAndClose() {
     setStep(1);
     setPicks({});
-    setError(null);
+    setErrorIssues(null);
     setBuilderDelegation(false);
     onClose();
   }
@@ -207,9 +209,7 @@ export function NewOrderModal({ open, onClose }: Props) {
           />
         )}
 
-        {error ? (
-          <p style={{ color: "#DC2626", fontSize: 12, marginTop: 10, marginBottom: 0 }}>{error}</p>
-        ) : null}
+        <ValidationErrorBanner issues={errorIssues} title="Could not create order:" />
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
           <button type="button" className="btn btn-secondary" onClick={resetAndClose}>
@@ -226,7 +226,7 @@ export function NewOrderModal({ open, onClose }: Props) {
               className="btn btn-primary"
               disabled={!effectiveHubId}
               onClick={() => {
-                setError(null);
+                setErrorIssues(null);
                 setStep(2);
               }}
             >
@@ -238,7 +238,7 @@ export function NewOrderModal({ open, onClose }: Props) {
               className="btn btn-primary"
               disabled={!effectiveHubId || createMutation.isPending}
               onClick={() => {
-                setError(null);
+                setErrorIssues(null);
                 createMutation.mutate();
               }}
             >

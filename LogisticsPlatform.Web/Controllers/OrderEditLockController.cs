@@ -1,13 +1,13 @@
 using LogisticsPlatform.Application.Abstractions.Messaging;
 using LogisticsPlatform.Application.UseCases.OrderDetails.EditLock.Acquire;
 using LogisticsPlatform.Application.UseCases.OrderDetails.EditLock.Heartbeat;
-using LogisticsPlatform.Application.UseCases.OrderDetails.EditLock.Release;
+using LogisticsPlatform.Application.UseCases.OrderDetails.EditLock.ReleaseLock;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogisticsPlatform.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin,Dispatcher")]
 [Route(ApiRoutes.ApiRoutes.Order)]
 public sealed class OrderEditLockController(IDispatcher dispatcher) : ApiController(dispatcher)
 {

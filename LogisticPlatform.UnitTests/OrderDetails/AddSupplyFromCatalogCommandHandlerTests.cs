@@ -11,14 +11,20 @@ namespace LogisticPlatform.UnitTests.OrderDetails;
 public sealed class AddSupplyFromCatalogCommandHandlerTests
 {
     private readonly Mock<IOrderAccessRepository> _orderAccess = new();
+    private readonly Mock<IOrderPaymentsRepository> _payments = new();
     private readonly Mock<IOrderSuppliesRepository> _orderSupplies = new();
     private readonly Mock<ISupplyCatalogRepository> _catalog = new();
     private readonly AddSupplyFromCatalogCommandHandler _sut;
 
     public AddSupplyFromCatalogCommandHandlerTests()
     {
+        _payments
+            .Setup(x => x.HasPaidAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         _sut = new AddSupplyFromCatalogCommandHandler(
             _orderAccess.Object,
+            _payments.Object,
             _orderSupplies.Object,
             _catalog.Object);
     }

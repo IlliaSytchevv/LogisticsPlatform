@@ -42,15 +42,23 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPatch]
     public async Task<IActionResult> UpdateOrder(
         Guid orderId,
         [FromBody] UpdateOrderRequest request,
         CancellationToken cancellationToken)
     {
+        if (!TryGetCurrentUserId(out Guid userId))
+        {
+            return Unauthorized();
+        }
+
         var result = await Dispatcher.Send(
             new UpdateOrderCommand(
                 orderId,
+                userId,
+                request.Number,
                 request.CustomerName,
                 request.PrimaryReference,
                 request.DeclaredQty,
@@ -64,12 +72,14 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
                 request.WarehouseNote,
                 request.StockStatusLabel,
                 request.LoadingStatusLabel,
-                request.Status),
+                request.Status,
+                request.AwaitingClientAction),
             cancellationToken);
 
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("operations")]
     public async Task<IActionResult> AddOperation(
         Guid orderId,
@@ -90,6 +100,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpDelete("operations/{operationId:guid}")]
     public async Task<IActionResult> DeleteOperation(
         Guid orderId,
@@ -115,6 +126,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("operations/{operationId:guid}/comments")]
     public async Task<IActionResult> AddOperationComment(
         Guid orderId,
@@ -140,6 +152,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("operations/{operationId:guid}/photos")]
     [RequestSizeLimit(AddWarehousePhotoCommandValidator.MaxFileBytes)]
     public async Task<IActionResult> AddOperationPhoto(
@@ -183,6 +196,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return await WriteFileAsync(result.Value, inline: true, cancellationToken);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpDelete("operations/{operationId:guid}/photos/{photoId:guid}")]
     public async Task<IActionResult> DeleteOperationPhoto(
         Guid orderId,
@@ -216,6 +230,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("supplies/from-catalog")]
     public async Task<IActionResult> AddSupplyFromCatalog(
         Guid orderId,
@@ -251,6 +266,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPatch("supplies/{supplyId:guid}/quantity")]
     public async Task<IActionResult> UpdateSupplyQuantity(
         Guid orderId,
@@ -265,6 +281,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpDelete("supplies/{supplyId:guid}")]
     public async Task<IActionResult> DeleteSupply(
         Guid orderId,
@@ -278,6 +295,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("warehouse-photos")]
     [RequestSizeLimit(AddWarehousePhotoCommandValidator.MaxFileBytes)]
     public async Task<IActionResult> AddWarehousePhoto(
@@ -318,6 +336,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return await WriteFileAsync(result.Value, inline: true, cancellationToken);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpDelete("warehouse-photos/{photoId:guid}")]
     public async Task<IActionResult> DeleteWarehousePhoto(
         Guid orderId,
@@ -338,6 +357,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("comments")]
     public async Task<IActionResult> AddComment(
         Guid orderId,
@@ -358,6 +378,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         return GetActionResult(result);
     }
 
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost("timeline")]
     public async Task<IActionResult> AddTimelineEntry(
         Guid orderId,

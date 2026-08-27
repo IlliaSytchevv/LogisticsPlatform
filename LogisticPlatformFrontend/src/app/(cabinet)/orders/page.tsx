@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ordersService } from "@/api/services/orders.service";
 import type { OrderListTab, OrdersListParams } from "@/types/orders";
+import { useSession } from "@/hooks/use-session";
 import { NewOrderModal } from "./_components/new-order-modal";
 import { OrderListCard } from "./_components/order-list-card";
 import { OrdersTable } from "./_components/orders-table";
@@ -24,6 +25,7 @@ const PAGE_SIZE = 6;
 export default function OrdersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { canWrite, isDriver, loading: sessionLoading } = useSession();
   const q = (searchParams.get("q") ?? "").trim();
   const [tab, setTab] = useState<OrderListTab>(1);
   const [view, setView] = useState<"cards" | "table">("cards");
@@ -130,21 +132,25 @@ export default function OrdersPage() {
           </span>
         ) : null}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={exporting}
-            onClick={() => void onExport()}
-          >
-            {exporting ? "Exporting…" : "📥 Export CSV"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setNewOrderOpen(true)}
-          >
-            + New Order
-          </button>
+          {!sessionLoading && (canWrite || isDriver) ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={exporting}
+              onClick={() => void onExport()}
+            >
+              {exporting ? "Exporting…" : "📥 Export CSV"}
+            </button>
+          ) : null}
+          {!sessionLoading && canWrite ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setNewOrderOpen(true)}
+            >
+              + New Order
+            </button>
+          ) : null}
         </div>
       </div>
 

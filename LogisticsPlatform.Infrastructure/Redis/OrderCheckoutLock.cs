@@ -5,7 +5,6 @@ namespace LogisticsPlatform.Infrastructure.Redis;
 
 public sealed class OrderCheckoutLock(IConnectionMultiplexer multiplexer) : IOrderCheckoutLock
 {
-    /// <summary>Short TTL: if user abandons Stripe, lock clears quickly.</summary>
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(20);
 
     private const string HeldValue = "1";

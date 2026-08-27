@@ -1,4 +1,5 @@
 using FluentValidation;
+using LogisticsPlatform.Domain.Enums;
 
 namespace LogisticsPlatform.Application.UseCases.Auth.Register;
 
@@ -20,6 +21,8 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
             .MinimumLength(6);
         
         RuleFor(x => x.Role)
-            .NotEmpty();
+            .NotEmpty()
+            .Must(r => Enum.TryParse<UserRole>(r, ignoreCase: true, out _))
+            .WithMessage("Role must be Admin, Dispatcher, or Driver.");
     }
 }

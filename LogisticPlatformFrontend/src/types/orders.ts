@@ -200,6 +200,7 @@ export type OrderDetails = {
   loadingStatusLabel: string | null;
   hasAlert: boolean;
   alertReason: string | null;
+  awaitingClientAction: boolean;
   assignedDock: OrderAssignedDock;
   expected: OrderQtyBlock;
   actual: OrderQtyBlock;
@@ -212,6 +213,7 @@ export type OrderDetails = {
 };
 
 export type UpdateOrderRequest = {
+  number?: string | null;
   customerName?: string | null;
   primaryReference?: string | null;
   declaredQty?: number | null;
@@ -226,6 +228,7 @@ export type UpdateOrderRequest = {
   stockStatusLabel?: string | null;
   loadingStatusLabel?: string | null;
   status?: OrderStatus | null;
+  awaitingClientAction?: boolean | null;
 };
 
 export type AddOrderOperationRequest = {

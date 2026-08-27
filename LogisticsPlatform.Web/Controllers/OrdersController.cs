@@ -19,6 +19,7 @@ namespace LogisticsPlatform.Controllers;
 [Route(ApiRoutes.ApiRoutes.Orders)]
 public sealed class OrdersController(IDispatcher dispatcher) : ApiController(dispatcher)
 {
+    [Authorize(Roles = "Admin,Dispatcher")]
     [HttpPost]
     public async Task<IActionResult> CreateOrder(
         [FromBody] CreateOrderRequest request,

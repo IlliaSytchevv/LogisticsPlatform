@@ -15,6 +15,7 @@ type Props = {
   orderNumber?: string;
   supplies: OrderSupply[];
   subtotalCents: number;
+  isPaid: boolean;
 };
 
 type EditTarget =
@@ -22,9 +23,10 @@ type EditTarget =
   | { kind: "qty"; supply: OrderSupply }
   | null;
 
-export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents }: Props) {
+export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents, isPaid }: Props) {
   const queryClient = useQueryClient();
-  const { isAdmin, loading: sessionLoading } = useSession();
+  const { isAdmin, canWrite, loading: sessionLoading } = useSession();
+  const canMutateSupplies = !sessionLoading && canWrite && !isPaid;
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditTarget>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -48,14 +50,16 @@ export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents }:
               FOE catalog · Platform price only (WP / margin hidden)
             </span>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: 12, padding: "4px 10px" }}
-            onClick={() => setAddOpen(true)}
-          >
-            + Supply
-          </button>
+          {canMutateSupplies ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: 12, padding: "4px 10px" }}
+              onClick={() => setAddOpen(true)}
+            >
+              + Supply
+            </button>
+          ) : null}
         </div>
         {error && (
           <div style={{ padding: "8px 14px", color: "#DC2626", fontSize: 12 }}>{error}</div>
@@ -100,7 +104,7 @@ export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents }:
                     {formatMoneyCents(s.lineTotalCents)}
                   </td>
                   <td style={{ color: "#6B7280", whiteSpace: "nowrap" }}>
-                    {!sessionLoading && isAdmin ? (
+                    {!sessionLoading && isAdmin && !isPaid ? (
                       <button
                         type="button"
                         className="btn btn-secondary"
@@ -111,7 +115,7 @@ export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents }:
                         ✏️
                       </button>
                     ) : null}
-                    {!sessionLoading ? (
+                    {canMutateSupplies ? (
                       <button
                         type="button"
                         className="btn btn-secondary"
@@ -122,19 +126,21 @@ export function SuppliesTable({ orderId, orderNumber, supplies, subtotalCents }:
                         Qty
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      style={{ padding: "2px 6px", fontSize: 11 }}
-                      disabled={deleteMutation.isPending}
-                      onClick={() => {
-                        if (confirm(`Delete supply “${s.name || s.sku}”?`)) {
-                          deleteMutation.mutate(s.id);
-                        }
-                      }}
-                    >
-                      🗑
-                    </button>
+                    {canMutateSupplies ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ padding: "2px 6px", fontSize: 11 }}
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (confirm(`Delete supply “${s.name || s.sku}”?`)) {
+                            deleteMutation.mutate(s.id);
+                          }
+                        }}
+                      >
+                        🗑
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))

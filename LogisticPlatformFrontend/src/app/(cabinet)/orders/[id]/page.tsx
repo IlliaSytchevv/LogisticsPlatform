@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@/types/auth";
 import { mediaUrl, ordersService } from "@/api/services/orders.service";
 import { paymentsService } from "@/api/services/payments.service";
+import { useSession } from "@/hooks/use-session";
 import {
   orderCommentsOptions,
   orderDetailOptions,
@@ -37,6 +38,7 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { canWrite, loading: sessionLoading } = useSession();
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -127,7 +129,7 @@ export default function OrderDetailPage({
       window.location.assign(checkoutUrl);
     } catch (err) {
       setDocError(
-        conflictMessage(err, "Payment already in progress for this order.") ??
+        conflictMessage(err, "Try again in a moment.") ??
           (err instanceof Error ? err.message : "Checkout failed"),
       );
       setPayBusy(false);
@@ -149,6 +151,28 @@ export default function OrderDetailPage({
       setEditBusy(false);
     }
   };
+
+  const isDraftOrClosed = order.status === 1 || order.status === 6;
+  const isCrossDock = order.type === 1;
+  const payDisabled =
+    sessionLoading || !canWrite || payBusy || order.isPaid || isDraftOrClosed || !isCrossDock;
+  const payTitle = !canWrite
+    ? "Payment requires Admin or Dispatcher."
+    : order.isPaid
+      ? "Already paid"
+      : isDraftOrClosed
+        ? "You cannot pay for an order in Draft or Closed status."
+        : !isCrossDock
+          ? "Payment is only available for Cross-Dock orders."
+          : "Pay supplies";
+  const payGreyStyle = payDisabled && !payBusy
+    ? {
+        color: "#9CA3AF",
+        borderColor: "#D1D5DB",
+        background: "#F3F4F6",
+        cursor: "not-allowed" as const,
+      }
+    : {};
 
   return (
     <>
@@ -252,24 +276,22 @@ export default function OrderDetailPage({
         >
           📷 <span style={{ color: "#9CA3AF" }}>{photos.length}</span>
         </button>
-        {order.type === 1 && (
+        {!sessionLoading && canWrite ? (
           <button
             type="button"
             className="btn btn-secondary"
             style={{
               padding: "7px 12px",
               fontSize: 12,
-              ...(order.isPaid
-                ? { color: "#9CA3AF", borderColor: "#D1D5DB", background: "#F3F4F6", cursor: "not-allowed" }
-                : {}),
+              ...payGreyStyle,
             }}
-            title={order.isPaid ? "Already paid" : "Pay supplies"}
-            disabled={payBusy || order.isPaid}
+            title={payTitle}
+            disabled={payDisabled}
             onClick={startCheckout}
           >
             {payBusy ? "…" : "$"}
           </button>
-        )}
+        ) : null}
         <button
           type="button"
           className="btn btn-secondary"
@@ -337,15 +359,17 @@ export default function OrderDetailPage({
           >
             📥 {docBusy === "bol" ? "…" : "BOL PDF"}
           </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ padding: "7px 14px", fontSize: 12 }}
-            disabled={editBusy}
-            onClick={openEdit}
-          >
-            {editBusy ? "…" : "✏️ Edit"}
-          </button>
+          {!sessionLoading && canWrite ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: "7px 14px", fontSize: 12 }}
+              disabled={editBusy}
+              onClick={openEdit}
+            >
+              {editBusy ? "…" : "✏️ Edit"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -697,6 +721,7 @@ export default function OrderDetailPage({
           orderNumber={order.number}
           supplies={order.supplies ?? []}
           subtotalCents={order.suppliesSubtotalCents ?? 0}
+          isPaid={order.isPaid}
         />
       </div>
 

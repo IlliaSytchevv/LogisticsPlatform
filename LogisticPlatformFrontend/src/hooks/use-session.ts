@@ -23,6 +23,9 @@ export function useSession() {
 
   const roles = user?.roles ?? [];
   const isAdmin = roles.some((r) => r.toLowerCase() === "admin");
+  const isDispatcher = roles.some((r) => r.toLowerCase() === "dispatcher");
+  const isDriver = roles.some((r) => r.toLowerCase() === "driver");
+  const canWrite = isAdmin || isDispatcher;
 
-  return { user, loading, roles, isAdmin };
+  return { user, loading, roles, isAdmin, isDispatcher, isDriver, canWrite };
 }

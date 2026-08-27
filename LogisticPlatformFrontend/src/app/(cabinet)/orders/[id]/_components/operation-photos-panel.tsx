@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mediaUrl, ordersService } from "@/api/services/orders.service";
+import { useSession } from "@/hooks/use-session";
 import { operationPhotosOptions, ordersKeys } from "../../_hooks/orders-queries";
 import { DetailModal } from "./detail-modal";
 
@@ -22,6 +23,7 @@ export function OperationPhotosPanel({
   onClose,
 }: Props) {
   const queryClient = useQueryClient();
+  const { canWrite } = useSession();
   const inputRef = useRef<HTMLInputElement>(null);
   const { data = [], isLoading } = useQuery({
     ...operationPhotosOptions(orderId, operationId),
@@ -77,50 +79,56 @@ export function OperationPhotosPanel({
                   }}
                 />
               </a>
-              <button
-                type="button"
-                title="Delete"
-                onClick={() => deleteMutation.mutate(p.id)}
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  border: "none",
-                  background: "rgba(0,0,0,.55)",
-                  color: "#fff",
-                  borderRadius: 4,
-                  width: 22,
-                  height: 22,
-                  cursor: "pointer",
-                  fontSize: 11,
-                }}
-              >
-                🗑
-              </button>
+              {canWrite ? (
+                <button
+                  type="button"
+                  title="Delete"
+                  onClick={() => deleteMutation.mutate(p.id)}
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    border: "none",
+                    background: "rgba(0,0,0,.55)",
+                    color: "#fff",
+                    borderRadius: 4,
+                    width: 22,
+                    height: 22,
+                    cursor: "pointer",
+                    fontSize: 11,
+                  }}
+                >
+                  🗑
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
       )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) uploadMutation.mutate(file);
-          e.target.value = "";
-        }}
-      />
-      {error && <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>{error}</div>}
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={uploadMutation.isPending}
-        onClick={() => inputRef.current?.click()}
-      >
-        {uploadMutation.isPending ? "Uploading…" : "+ Upload photo"}
-      </button>
+      {canWrite ? (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadMutation.mutate(file);
+              e.target.value = "";
+            }}
+          />
+          {error && <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>{error}</div>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={uploadMutation.isPending}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploadMutation.isPending ? "Uploading…" : "+ Upload photo"}
+          </button>
+        </>
+      ) : null}
     </DetailModal>
   );
 }

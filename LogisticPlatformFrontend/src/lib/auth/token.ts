@@ -5,11 +5,25 @@ import type { AuthUser } from "@/types/auth";
 const NAME_ID =
   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier";
 const NAME = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
-const ROLE = "http://schemas.microsoft.com/ws/2008/05/identity/claims/role";
+const ROLE_URIS = [
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+  "http://schemas.microsoft.com/ws/2008/05/identity/claims/role",
+  "role",
+  "roles",
+] as const;
+
+function readRoles(payload: Record<string, unknown>): string[] {
+  for (const key of ROLE_URIS) {
+    const roles = payload[key];
+    if (Array.isArray(roles)) return roles.map(String);
+    if (typeof roles === "string" && roles.length > 0) return [roles];
+  }
+  return [];
+}
 
 export function parseAuthUser(token: string): AuthUser | null {
   try {
-    const payload = decodeJwt(token);
+    const payload = decodeJwt(token) as Record<string, unknown>;
     if (typeof payload.exp === "number" && payload.exp * 1000 <= Date.now()) {
       return null;
     }
@@ -17,15 +31,10 @@ export function parseAuthUser(token: string): AuthUser | null {
     const typ = payload.typ ?? payload["typ"];
     if (typ === "refresh") return null;
 
-    const roles = payload[ROLE];
     return {
       id: String(payload[NAME_ID] ?? payload.sub ?? ""),
       name: String(payload[NAME] ?? payload.unique_name ?? ""),
-      roles: Array.isArray(roles)
-        ? roles.map(String)
-        : roles
-          ? [String(roles)]
-          : [],
+      roles: readRoles(payload),
     };
   } catch {
     return null;

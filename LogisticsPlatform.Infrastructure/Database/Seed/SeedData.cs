@@ -1,3 +1,5 @@
+using LogisticsPlatform.Application.Interfaces.Services;
+using LogisticsPlatform.Application.Services;
 using LogisticsPlatform.Domain.Entities;
 using LogisticsPlatform.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -8,95 +10,72 @@ namespace LogisticsPlatform.Infrastructure.Database.Seed;
 
 public static class SeedData
 {
-    private static readonly string[] IdentityRoles = ["User", "Admin"];
+    private static readonly string[] IdentityRoles = ["Admin", "Dispatcher", "Driver"];
+    private const string Password = "Test123!";
 
-    private const string TestUserName = "testuser";
-    private const string TestUserEmail = "testuser@logistics.local";
-    private const string TestUserPassword = "Test123!";
-    private const string TestUserIdentityRole = "Admin";
-
-    private static readonly Guid User1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid User2Id = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly Guid User3Id = Guid.Parse("33333333-3333-3333-3333-333333333333");
-    private static readonly Guid User5Id = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    private static readonly Guid AdminUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid DispatcherUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly Guid DriverUserId = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     private static readonly Guid HubMarkhamId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1");
     private static readonly Guid HubTorontoId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2");
+
+    private static readonly Guid DockD1Id = Guid.Parse("a1000000-0000-0000-0000-000000000001");
+    private static readonly Guid DockD2Id = Guid.Parse("a1000000-0000-0000-0000-000000000002");
+    private static readonly Guid DockT1Id = Guid.Parse("a1000000-0000-0000-0000-000000000003");
 
     private static readonly Guid CarrierDriver5Id = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1");
     private static readonly Guid CarrierSchneiderId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2");
     private static readonly Guid CarrierTForceId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3");
     private static readonly Guid CarrierSelfId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4");
 
+    private static readonly Guid Order676Id = Guid.Parse("c0000000-0000-0000-0000-000000001676");
+    private static readonly Guid Order681Id = Guid.Parse("c0000000-0000-0000-0000-000000001681");
+    private static readonly Guid Order674Id = Guid.Parse("c0000000-0000-0000-0000-000000001674");
+    private static readonly Guid Order672Id = Guid.Parse("c0000000-0000-0000-0000-000000001672");
+    private static readonly Guid DraftOrderId = Guid.Parse("c0000000-0000-0000-0000-000000000101");
+    private static readonly Guid ClosedOrderId = Guid.Parse("c0000000-0000-0000-0000-000000000102");
+
+    private static readonly Guid Op676LoadingId = Guid.Parse("a2000000-0000-0000-0000-000000000001");
+    private static readonly Guid Op676UnloadingId = Guid.Parse("a2000000-0000-0000-0000-000000000002");
+
+    private static readonly byte[] TinyPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
     {
         await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+        AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
 
-        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.MigrateAsync();
+        await EnsureRolesAsync(scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>());
+        await EnsureUsersAsync(scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>());
 
-        RoleManager<IdentityRole<Guid>> roleManager = scope.ServiceProvider
-            .GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        if (await db.Orders.AnyAsync())
+            return;
 
+        IPhotoBlobStore photos = scope.ServiceProvider.GetRequiredService<IPhotoBlobStore>();
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        await SeedReferenceDataAsync(db);
+        await SeedCatalogAsync(db);
+        await SeedOrdersAsync(db, photos, now);
+    }
+
+    private static async Task EnsureRolesAsync(RoleManager<IdentityRole<Guid>> roleManager)
+    {
         foreach (string roleName in IdentityRoles)
         {
             if (!await roleManager.RoleExistsAsync(roleName))
                 await roleManager.CreateAsync(new IdentityRole<Guid>(roleName));
         }
+    }
 
-        UserManager<ApplicationUser> userManager = scope.ServiceProvider
-            .GetRequiredService<UserManager<ApplicationUser>>();
-
-        await EnsureUserAsync(
-            userManager,
-            User1Id,
-            TestUserName,
-            TestUserEmail,
-            "User 1",
-            "U1",
-            UserRole.Admin,
-            balanceCents: 100,
-            password: TestUserPassword,
-            identityRole: TestUserIdentityRole);
-
-        await EnsureUserAsync(
-            userManager,
-            User2Id,
-            "user2",
-            "user2@logistics.local",
-            "User 2",
-            "U2",
-            UserRole.Dispatcher,
-            balanceCents: 0,
-            password: TestUserPassword,
-            identityRole: "User");
-
-        await EnsureUserAsync(
-            userManager,
-            User3Id,
-            "user3",
-            "user3@logistics.local",
-            "User 3",
-            "U3",
-            UserRole.Dispatcher,
-            balanceCents: 0,
-            password: TestUserPassword,
-            identityRole: "User");
-
-        await EnsureUserAsync(
-            userManager,
-            User5Id,
-            "user5",
-            "user5@logistics.local",
-            "User 5",
-            "U5",
-            UserRole.Driver,
-            balanceCents: 0,
-            password: TestUserPassword,
-            identityRole: "User");
-
-        await SeedCatalogAndOrdersAsync(dbContext);
-        await SeedFoeSupplyCatalogAsync(dbContext);
+    private static async Task EnsureUsersAsync(UserManager<ApplicationUser> userManager)
+    {
+        await EnsureUserAsync(userManager, AdminUserId, "AdminUser", "Adminuser@logistics.local", "Admin User", "AU", UserRole.Admin, 100, "Admin");
+        await EnsureUserAsync(userManager, DispatcherUserId, "DispatcherUser", "DispatcherUser@logistics.local", "Dispatcher User", "DU", UserRole.Dispatcher, 0, "Dispatcher");
+        await EnsureUserAsync(userManager, DriverUserId, "DriverUser", "DriverUser@logistics.local", "Driver User", "DR", UserRole.Driver, 0, "Driver");
     }
 
     private static async Task EnsureUserAsync(
@@ -108,13 +87,27 @@ public static class SeedData
         string initials,
         UserRole role,
         long balanceCents,
-        string password,
         string identityRole)
     {
         ApplicationUser? byId = await userManager.FindByIdAsync(id.ToString());
         if (byId is not null)
         {
-            await UpdateSeedUserAsync(userManager, byId, displayName, initials, role, balanceCents, identityRole);
+            byId.DisplayName = displayName;
+            byId.Initials = initials;
+            byId.Role = role;
+            byId.BalanceCents = balanceCents;
+            byId.IsActive = true;
+            await userManager.UpdateAsync(byId);
+
+            if (!await userManager.IsInRoleAsync(byId, identityRole))
+                await userManager.AddToRoleAsync(byId, identityRole);
+
+            foreach (string existing in await userManager.GetRolesAsync(byId))
+            {
+                if (!string.Equals(existing, identityRole, StringComparison.OrdinalIgnoreCase))
+                    await userManager.RemoveFromRoleAsync(byId, existing);
+            }
+
             return;
         }
 
@@ -123,7 +116,7 @@ public static class SeedData
             await userManager.DeleteAsync(byName);
 
         ApplicationUser? byEmail = await userManager.FindByEmailAsync(email);
-        if (byEmail is not null && byEmail.Id != id)
+        if (byEmail is not null)
             await userManager.DeleteAsync(byEmail);
 
         var user = new ApplicationUser
@@ -141,77 +134,77 @@ public static class SeedData
             IsActive = true
         };
 
-        IdentityResult createResult = await userManager.CreateAsync(user, password);
-        if (!createResult.Succeeded)
-        {
-            string errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to seed user {userName}: {errors}");
-        }
+        IdentityResult create = await userManager.CreateAsync(user, Password);
+        if (!create.Succeeded)
+            throw new InvalidOperationException($"Seed user {userName}: {string.Join(", ", create.Errors.Select(e => e.Description))}");
 
         await userManager.AddToRoleAsync(user, identityRole);
     }
 
-    private static async Task UpdateSeedUserAsync(
-        UserManager<ApplicationUser> userManager,
-        ApplicationUser user,
-        string displayName,
-        string initials,
-        UserRole role,
-        long balanceCents,
-        string identityRole)
+    private static async Task SeedReferenceDataAsync(AppDbContext db)
     {
-        user.DisplayName = displayName;
-        user.Initials = initials;
-        user.Role = role;
-        user.BalanceCents = balanceCents;
-        user.IsActive = true;
+        db.Hubs.AddRange(
+            new Hub { Id = HubMarkhamId, Name = "Markham", RegionCode = "ON" },
+            new Hub { Id = HubTorontoId, Name = "Toronto", RegionCode = "ON" });
 
-        IdentityResult updateResult = await userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
-        {
-            string errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to update seed user {user.UserName}: {errors}");
-        }
+        db.HubDocks.AddRange(
+            new HubDock { Id = DockD1Id, HubId = HubMarkhamId, Code = "D1", BayLabel = "Bay A", SortOrder = 1 },
+            new HubDock { Id = DockD2Id, HubId = HubMarkhamId, Code = "D2", BayLabel = "Bay B", SortOrder = 2 },
+            new HubDock { Id = DockT1Id, HubId = HubTorontoId, Code = "T1", BayLabel = "Bay 1", SortOrder = 1 });
 
-        if (!await userManager.IsInRoleAsync(user, identityRole))
-            await userManager.AddToRoleAsync(user, identityRole);
+        db.Carriers.AddRange(
+            new Carrier { Id = CarrierDriver5Id, Name = "Driver: Driver User", DriverUserId = DriverUserId },
+            new Carrier { Id = CarrierSchneiderId, Name = "Schneider" },
+            new Carrier { Id = CarrierTForceId, Name = "TForce" },
+            new Carrier { Id = CarrierSelfId, Name = "Self pickup" });
 
-        // Keep Identity roles aligned with seed: drop extras so Admin vs User is correct after re-seed.
-        foreach (string existing in await userManager.GetRolesAsync(user))
-        {
-            if (!string.Equals(existing, identityRole, StringComparison.OrdinalIgnoreCase))
-                await userManager.RemoveFromRoleAsync(user, existing);
-        }
+        await db.SaveChangesAsync();
     }
 
-    private static async Task SeedCatalogAndOrdersAsync(AppDbContext dbContext)
+    private static async Task SeedCatalogAsync(AppDbContext db)
     {
-        if (!await dbContext.Hubs.AnyAsync())
+        db.SupplyCatalogItems.AddRange(
+            Catalog(1, "WRAP-001", "Shrink wrap 120g", "Packaging", 120, 70, 20),
+            Catalog(2, "WRAP-002", "Stretch film 500m", "Packaging", 180, 110, 18),
+            Catalog(3, "STRAP-12", "Straps 12'", "Securing", 80, 45, 22),
+            Catalog(4, "STRAP-18", "Straps 18'", "Securing", 95, 55, 22),
+            Catalog(5, "CORN-50", "Corners 50", "Protection", 50, 28, 25),
+            Catalog(6, "CORN-100", "Corners 100", "Protection", 90, 52, 25),
+            Catalog(7, "PAL-STD", "Standard pallet", "Pallets", 1500, 900, 15),
+            Catalog(8, "PAL-XL", "XL pallet", "Pallets", 2200, 1400, 15),
+            Catalog(9, "LABEL-A4", "Shipping labels A4 (100)", "Labels", 40, 22, 30),
+            Catalog(10, "TAPE-CLR", "Clear packing tape", "Packaging", 35, 18, 28),
+            Catalog(11, "EDGE-BD", "Edge boards (pair)", "Protection", 110, 65, 20),
+            Catalog(12, "BAND-PET", "PET banding roll", "Securing", 250, 160, 18),
+            Catalog(13, "SLIP-SHT", "Slip sheet", "Pallets", 75, 40, 24),
+            Catalog(14, "DUNN-BAG", "Dunnage air bags", "Protection", 320, 200, 16),
+            Catalog(15, "SEAL-MET", "Metal seals (10)", "Securing", 60, 30, 30),
+            Catalog(16, "GLOVE-M", "Work gloves M", "Safety", 45, 22, 35));
+
+        await db.SaveChangesAsync();
+    }
+
+    private static SupplyCatalogItem Catalog(
+        int sort, string sku, string name, string category,
+        long platform, long wholesale, decimal margin) =>
+        new()
         {
-            dbContext.Hubs.AddRange(
-                new Hub { Id = HubMarkhamId, Name = "Markham", RegionCode = "ON" },
-                new Hub { Id = HubTorontoId, Name = "Toronto", RegionCode = "ON" });
-        }
+            Id = Guid.Parse($"d1000000-0000-0000-0000-0000000000{sort:D2}"),
+            Sku = sku,
+            Name = name,
+            Category = category,
+            PlatformPriceCents = platform,
+            WholesalePriceCents = wholesale,
+            MarginSplitPercent = margin,
+            SortOrder = sort,
+            IsActive = true
+        };
 
-        if (!await dbContext.Carriers.AnyAsync())
-        {
-            dbContext.Carriers.AddRange(
-                new Carrier { Id = CarrierDriver5Id, Name = "Driver: User 5", DriverUserId = User5Id },
-                new Carrier { Id = CarrierSchneiderId, Name = "Schneider" },
-                new Carrier { Id = CarrierTForceId, Name = "TForce" },
-                new Carrier { Id = CarrierSelfId, Name = "Self pickup" });
-        }
-
-        await dbContext.SaveChangesAsync();
-
-        if (await dbContext.Orders.AnyAsync())
-            return;
-
-        var now = DateTimeOffset.UtcNow;
-
+    private static async Task SeedOrdersAsync(AppDbContext db, IPhotoBlobStore photos, DateTimeOffset now)
+    {
         var order676 = new Order
         {
-            Id = Guid.Parse("c0000000-0000-0000-0000-000000001676"),
+            Id = Order676Id,
             Number = "FR001676",
             Type = OrderType.Consolidation,
             Status = OrderStatus.InProgress,
@@ -219,16 +212,40 @@ public static class SeedData
             ScheduledAt = new DateTimeOffset(2026, 4, 12, 9, 0, 0, TimeSpan.Zero),
             DestinationCity = "Toronto",
             DestinationRegion = "ON",
-            CreatedByUserId = User1Id,
+            CreatedByUserId = AdminUserId,
             CarrierId = CarrierDriver5Id,
+            DeclaredQty = 18,
+            ActualQty = 18,
             TrailersConsolidated = 2,
+            CreatedAt = now.AddDays(-10),
             NextAction = new OrderNextAction
             {
                 NextActionKind = NextActionKind.Loading,
                 NextActionLabel = "Loading",
-                NextActionDueAt = now.AddHours(2).AddMinutes(14),
+                NextActionDueAt = now.AddHours(2)
             },
-            CreatedAt = now.AddDays(-10),
+            Cabinet = new OrderCabinetDetail
+            {
+                CustomerName = "Acme Logistics Inc.",
+                PrimaryReference = "REF-1001",
+                Phone = "+1 416 555 0101",
+                TrailerType = "Van · 53ft",
+                TruckNumber = "TRK-1201",
+                TrailerNumber = "TRL-8801",
+                ServicesCsv = "Transload,Restack",
+                QuantityUnitLabel = "Pallets",
+                StockStatusLabel = "Counted",
+                LoadingStatusLabel = "In progress"
+            },
+            Dock = new OrderDockAssignment
+            {
+                DockCode = "D1",
+                DockBay = "Bay A",
+                DockAssignedAt = now.AddDays(-1),
+                DockStatusLabel = "Trailer docked · loading",
+                AssignedToUserId = DriverUserId,
+                WarehouseNote = "Counted 18 pallets on arrival."
+            },
             QuantityLines =
             {
                 new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 15 },
@@ -244,7 +261,7 @@ public static class SeedData
 
         var order681 = new Order
         {
-            Id = Guid.Parse("c0000000-0000-0000-0000-000000001681"),
+            Id = Order681Id,
             Number = "FR001681",
             Type = OrderType.CrossDock,
             Status = OrderStatus.New,
@@ -253,15 +270,31 @@ public static class SeedData
             DestinationCity = "Detroit",
             DestinationRegion = "MI",
             DestinationNote = "via External PDF",
-            CreatedByUserId = User2Id,
+            CreatedByUserId = DispatcherUserId,
             CarrierId = CarrierSchneiderId,
+            DeclaredQty = 23,
+            CreatedAt = now.AddDays(-3),
             NextAction = new OrderNextAction
             {
                 AwaitingClientAction = true,
                 NextActionKind = NextActionKind.WaitingForTruck,
-                NextActionLabel = "Waiting for truck",
+                NextActionLabel = "Waiting for truck"
             },
-            CreatedAt = now.AddDays(-3),
+            Cabinet = new OrderCabinetDetail
+            {
+                CustomerName = "Northern Freight Co.",
+                PrimaryReference = "REF-1004",
+                TrailerType = "53' Dry Van",
+                ServicesCsv = "Cross-dock,Pallet wrap"
+            },
+            Dock = new OrderDockAssignment
+            {
+                DockCode = "T1",
+                DockBay = "Bay 1",
+                DockAssignedAt = now.AddHours(-6),
+                DockStatusLabel = "Assigned",
+                AssignedToUserId = DispatcherUserId
+            },
             QuantityLines =
             {
                 new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 23 }
@@ -274,7 +307,7 @@ public static class SeedData
 
         var order674 = new Order
         {
-            Id = Guid.Parse("c0000000-0000-0000-0000-000000001674"),
+            Id = Order674Id,
             Number = "FR001674",
             Type = OrderType.Consolidation,
             Status = OrderStatus.Alert,
@@ -282,20 +315,34 @@ public static class SeedData
             ScheduledAt = new DateTimeOffset(2026, 4, 13, 11, 0, 0, TimeSpan.Zero),
             DestinationCity = "Calgary",
             DestinationRegion = "AB",
-            CreatedByUserId = User3Id,
+            CreatedByUserId = DispatcherUserId,
             CarrierId = CarrierTForceId,
             DeclaredQty = 20,
             ActualQty = 18,
             TrailersConsolidated = 1,
             HasAlert = true,
             AlertReason = "photo_missing",
+            CreatedAt = now.AddDays(-8),
             NextAction = new OrderNextAction
             {
                 AwaitingClientAction = true,
                 NextActionKind = NextActionKind.UploadPhoto,
-                NextActionLabel = "Upload photo",
+                NextActionLabel = "Upload photo"
             },
-            CreatedAt = now.AddDays(-8),
+            Cabinet = new OrderCabinetDetail
+            {
+                CustomerName = "Brampton Retail Hub",
+                PrimaryReference = "REF-1005",
+                ServicesCsv = "Consolidation,Photo check"
+            },
+            Dock = new OrderDockAssignment
+            {
+                DockCode = "D2",
+                DockBay = "Bay B",
+                DockStatusLabel = "Waiting",
+                AssignedToUserId = DispatcherUserId,
+                WarehouseNote = "Missing photo on REF-1006."
+            },
             SubOrders =
             {
                 new SubOrder { Id = Guid.NewGuid(), Number = "FR001674-1", Reference = "REF-1005", PalletCount = 11, SortOrder = 1 },
@@ -313,7 +360,7 @@ public static class SeedData
 
         var order672 = new Order
         {
-            Id = Guid.Parse("c0000000-0000-0000-0000-000000001672"),
+            Id = Order672Id,
             Number = "FR001672",
             Type = OrderType.CrossDock,
             Status = OrderStatus.Completed,
@@ -322,18 +369,33 @@ public static class SeedData
             DestinationCity = "Brampton",
             DestinationRegion = "ON",
             DestinationNote = "Order with photos",
-            CreatedByUserId = User1Id,
+            CreatedByUserId = AdminUserId,
             CarrierId = CarrierSelfId,
+            DeclaredQty = 10,
+            ActualQty = 10,
+            SpendCents = 100,
+            CreatedAt = now.AddDays(-20),
+            CompletedAt = now.AddDays(-5),
             NextAction = new OrderNextAction
             {
                 NextActionKind = NextActionKind.Paid,
                 NextActionLabel = "Paid",
                 NextActionAmountCents = 100,
-                NextActionDocumentNumber = "D01812",
+                NextActionDocumentNumber = "D01812"
             },
-            CreatedAt = now.AddDays(-20),
-            CompletedAt = now.AddDays(-5),
-            SpendCents = 100,
+            Cabinet = new OrderCabinetDetail
+            {
+                CustomerName = "R-way Transport",
+                PrimaryReference = "REF-1007",
+                ServicesCsv = "Unloading,Loading"
+            },
+            Dock = new OrderDockAssignment
+            {
+                DockCode = "D1",
+                DockBay = "Bay A",
+                DockStatusLabel = "Completed",
+                AssignedToUserId = AdminUserId
+            },
             QuantityLines =
             {
                 new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.XL, Count = 10 }
@@ -344,11 +406,60 @@ public static class SeedData
             }
         };
 
-        dbContext.Orders.AddRange(order676, order681, order674, order672);
+        var draft = new Order
+        {
+            Id = DraftOrderId,
+            Number = "DRAFT-000101",
+            Type = OrderType.CrossDock,
+            Status = OrderStatus.Draft,
+            HubId = HubMarkhamId,
+            ScheduledAt = now.AddDays(3),
+            DestinationCity = "Toronto",
+            DestinationRegion = "ON",
+            CreatedByUserId = AdminUserId,
+            CreatedAt = now.AddHours(-2),
+            Cabinet = new OrderCabinetDetail { CustomerName = "Draft Customer", PrimaryReference = "DRAFT-REF" },
+            Dock = new OrderDockAssignment { AssignedToUserId = DispatcherUserId }
+        };
 
+        var closed = new Order
+        {
+            Id = ClosedOrderId,
+            Number = "FR001700",
+            Type = OrderType.CrossDock,
+            Status = OrderStatus.Closed,
+            HubId = HubTorontoId,
+            ScheduledAt = now.AddDays(-30),
+            DestinationCity = "Ottawa",
+            DestinationRegion = "ON",
+            CreatedByUserId = DispatcherUserId,
+            CarrierId = CarrierSchneiderId,
+            DeclaredQty = 5,
+            ActualQty = 5,
+            CreatedAt = now.AddDays(-35),
+            CompletedAt = now.AddDays(-28),
+            NextAction = new OrderNextAction
+            {
+                NextActionKind = NextActionKind.Closed,
+                NextActionLabel = "Closed"
+            },
+            Cabinet = new OrderCabinetDetail { CustomerName = "Closed Co.", PrimaryReference = "REF-CLOSED" },
+            Dock = new OrderDockAssignment
+            {
+                DockCode = "T1",
+                DockStatusLabel = "Completed",
+                AssignedToUserId = DriverUserId
+            },
+            QuantityLines =
+            {
+                new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 5 }
+            }
+        };
+
+        var more = new List<Order>();
         for (var i = 0; i < 4; i++)
         {
-            dbContext.Orders.Add(new Order
+            more.Add(new Order
             {
                 Id = Guid.Parse($"c0000000-0000-0000-0000-00000001000{i}"),
                 Number = $"FR00169{i}",
@@ -358,13 +469,27 @@ public static class SeedData
                 ScheduledAt = now.AddDays(i),
                 DestinationCity = "Toronto",
                 DestinationRegion = "ON",
-                CreatedByUserId = User1Id,
+                CreatedByUserId = AdminUserId,
                 CarrierId = CarrierTForceId,
+                DeclaredQty = 5 + i,
+                ActualQty = 5 + i,
                 CreatedAt = now.AddDays(-i),
                 NextAction = new OrderNextAction
                 {
                     NextActionLabel = "Loading",
-                    NextActionKind = NextActionKind.Loading,
+                    NextActionKind = NextActionKind.Loading
+                },
+                Cabinet = new OrderCabinetDetail
+                {
+                    CustomerName = "Ontario Crossdock Ltd.",
+                    PrimaryReference = $"REF-11{i:00}"
+                },
+                Dock = new OrderDockAssignment
+                {
+                    DockCode = i % 2 == 0 ? "D1" : "D2",
+                    DockBay = i % 2 == 0 ? "Bay A" : "Bay B",
+                    AssignedToUserId = i % 2 == 0 ? DriverUserId : DispatcherUserId,
+                    DockStatusLabel = "Trailer docked · loading"
                 },
                 QuantityLines =
                 {
@@ -384,138 +509,162 @@ public static class SeedData
             });
         }
 
-        dbContext.Orders.Add(new Order
+        for (var w = 0; w < 8; w++)
         {
-            Id = Guid.Parse("c0000000-0000-0000-0000-000000001690"),
-            Number = "FR001690",
-            Type = OrderType.CrossDock,
-            Status = OrderStatus.New,
-            HubId = HubTorontoId,
-            ScheduledAt = now.AddDays(2),
-            DestinationCity = "Ottawa",
-            DestinationRegion = "ON",
-            CreatedByUserId = User2Id,
-            CarrierId = CarrierSchneiderId,
-            CreatedAt = now.AddDays(-1),
-            NextAction = new OrderNextAction
+            var completedAt = now.AddDays(-(7 - w) * 7);
+            more.Add(new Order
             {
-                AwaitingClientAction = true,
-                NextActionLabel = "Confirm details",
-            },
-            QuantityLines =
-            {
-                new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 8 }
-            },
-            SubOrders =
-            {
-                new SubOrder
+                Id = Guid.NewGuid(),
+                Number = $"FR00{2100 + w}",
+                Type = OrderType.CrossDock,
+                Status = OrderStatus.Completed,
+                HubId = HubMarkhamId,
+                ScheduledAt = completedAt.AddDays(-1),
+                DestinationCity = "Toronto",
+                DestinationRegion = "ON",
+                CreatedByUserId = AdminUserId,
+                CarrierId = CarrierSelfId,
+                DeclaredQty = 4,
+                ActualQty = 4,
+                CreatedAt = completedAt.AddDays(-3),
+                CompletedAt = completedAt,
+                SpendCents = w == 3 ? 100 : 0,
+                NextAction = new OrderNextAction
                 {
-                    Id = Guid.NewGuid(),
-                    Number = "FR001690-1",
-                    Reference = "REF-1200",
-                    PalletCount = 8,
-                    SortOrder = 1
+                    NextActionKind = NextActionKind.Paid,
+                    NextActionLabel = "Paid",
+                    NextActionAmountCents = w == 3 ? 100 : 0
+                },
+                Cabinet = new OrderCabinetDetail { CustomerName = "Maple Leaf Distribution" },
+                Dock = new OrderDockAssignment { AssignedToUserId = AdminUserId, DockStatusLabel = "Completed" },
+                QuantityLines =
+                {
+                    new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 4 }
                 }
-            }
-        });
-
-        for (var w = 0; w < 10; w++)
-        {
-            var completedAt = now.AddDays(-(9 - w) * 7);
-            var count = 1 + w / 2;
-            for (var n = 0; n < count; n++)
-            {
-                dbContext.Orders.Add(new Order
-                {
-                    Id = Guid.NewGuid(),
-                    Number = $"FR00{2000 + w * 10 + n}",
-                    Type = OrderType.CrossDock,
-                    Status = OrderStatus.Completed,
-                    HubId = HubMarkhamId,
-                    ScheduledAt = completedAt.AddDays(-1),
-                    DestinationCity = "Toronto",
-                    DestinationRegion = "ON",
-                    CreatedByUserId = User1Id,
-                    CarrierId = CarrierSelfId,
-                    CreatedAt = completedAt.AddDays(-3),
-                    CompletedAt = completedAt,
-                    SpendCents = w == 6 ? 100 : 0,
-                    NextAction = new OrderNextAction
-                    {
-                        NextActionKind = NextActionKind.Paid,
-                        NextActionLabel = "Paid",
-                        NextActionAmountCents = w == 6 ? 100 : 0,
-                    },
-                    QuantityLines =
-                    {
-                        new OrderQuantityLine { Id = Guid.NewGuid(), Unit = PalletUnit.Standard, Count = 4 }
-                    },
-                    SubOrders =
-                    {
-                        new SubOrder
-                        {
-                            Id = Guid.NewGuid(),
-                            Number = $"FR00{2000 + w * 10 + n}-1",
-                            Reference = $"REF-{2000 + w * 10 + n}",
-                            PalletCount = 4,
-                            SortOrder = 1
-                        }
-                    }
-                });
-            }
+            });
         }
 
-        await dbContext.SaveChangesAsync();
+        db.Orders.AddRange(order676, order681, order674, order672, draft, closed);
+        db.Orders.AddRange(more);
+
+        // Operations on hero order
+        db.OrderOperations.AddRange(
+            new OrderOperation
+            {
+                Id = Op676LoadingId,
+                OrderId = Order676Id,
+                Type = OrderOperationType.Loading,
+                Trailer = "TRL-8801",
+                Quantity = 18,
+                Unit = PalletUnit.Standard,
+                UnitLabel = "Pallets",
+                AppliedAt = now.AddHours(-4)
+            },
+            new OrderOperation
+            {
+                Id = Op676UnloadingId,
+                OrderId = Order676Id,
+                Type = OrderOperationType.Unloading,
+                Trailer = "TRL-8801",
+                Quantity = 18,
+                Unit = PalletUnit.Standard,
+                UnitLabel = "Pallets",
+                AppliedAt = now.AddHours(-8)
+            });
+
+        db.OrderOperationComments.Add(new OrderOperationComment
+        {
+            Id = Guid.NewGuid(),
+            OperationId = Op676LoadingId,
+            Text = "Started loading bay A.",
+            AuthorName = "Admin User",
+            CreatedAt = now.AddHours(-3)
+        });
+
+        Guid opPhotoId = Guid.Parse("a3000000-0000-0000-0000-000000000001");
+        string opKey = PhotoStorageKeys.ForOperation(Op676LoadingId, opPhotoId, "image/png");
+        await photos.SaveAsync(opKey, TinyPng, CancellationToken.None);
+        db.OrderOperationPhotos.Add(new OrderOperationPhoto
+        {
+            Id = opPhotoId,
+            OperationId = Op676LoadingId,
+            FileName = "loading.png",
+            ContentType = "image/png",
+            StorageKey = opKey
+        });
+
+        // Supplies (Cross-Dock payable sample on 681)
+        db.OrderSupplies.AddRange(
+            Supply(Order681Id, "WRAP-001", "Shrink wrap 120g", "Packaging", 2, 120),
+            Supply(Order681Id, "PAL-STD", "Standard pallet", "Pallets", 5, 1500),
+            Supply(Order676Id, "STRAP-12", "Straps 12'", "Securing", 4, 80));
+
+        Guid whPhotoId = Guid.Parse("a3000000-0000-0000-0000-000000000002");
+        string whKey = PhotoStorageKeys.ForWarehouse(Order676Id, whPhotoId, "image/png");
+        await photos.SaveAsync(whKey, TinyPng, CancellationToken.None);
+        db.OrderWarehousePhotos.Add(new OrderWarehousePhoto
+        {
+            Id = whPhotoId,
+            OrderId = Order676Id,
+            FileName = "dock.png",
+            ContentType = "image/png",
+            StorageKey = whKey
+        });
+
+        db.OrderComments.AddRange(
+            new OrderComment
+            {
+                Id = Guid.NewGuid(),
+                OrderId = Order676Id,
+                Text = "Customer confirmed pallet count.",
+                AuthorName = "Dispatcher User",
+                CreatedAt = now.AddDays(-1)
+            },
+            new OrderComment
+            {
+                Id = Guid.NewGuid(),
+                OrderId = Order674Id,
+                Text = "Waiting on missing photo.",
+                AuthorName = "Dispatcher User",
+                CreatedAt = now.AddHours(-12)
+            });
+
+        db.OrderTimelineEntries.AddRange(
+            new OrderTimelineEntry
+            {
+                Id = Guid.NewGuid(),
+                OrderId = Order676Id,
+                Kind = "Status",
+                Text = "Moved to In Progress",
+                PreviousStatus = OrderStatus.New,
+                NewStatus = OrderStatus.InProgress,
+                AuthorName = "Admin User",
+                CreatedAt = now.AddDays(-9)
+            },
+            new OrderTimelineEntry
+            {
+                Id = Guid.NewGuid(),
+                OrderId = Order676Id,
+                Kind = "Manual",
+                Text = "Dock D1 assigned.",
+                AuthorName = "Dispatcher User",
+                CreatedAt = now.AddDays(-1)
+            });
+
+        await db.SaveChangesAsync();
     }
 
-    private static async Task SeedFoeSupplyCatalogAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.SupplyCatalogItems.AnyAsync())
-            return;
-
-        // 16 FOE SKUs. WP + margin stored for internal use; client API never returns them.
-        SupplyCatalogItem[] items =
-        [
-            Item(1, "WRAP-001", "Shrink wrap 120g", "Packaging", 120, 70, 20),
-            Item(2, "WRAP-002", "Stretch film 500m", "Packaging", 180, 110, 18),
-            Item(3, "STRAP-12", "Straps 12'", "Securing", 80, 45, 22),
-            Item(4, "STRAP-18", "Straps 18'", "Securing", 95, 55, 22),
-            Item(5, "CORN-50", "Corners 50", "Protection", 50, 28, 25),
-            Item(6, "CORN-100", "Corners 100", "Protection", 90, 52, 25),
-            Item(7, "PAL-STD", "Standard pallet", "Pallets", 1500, 900, 15),
-            Item(8, "PAL-XL", "XL pallet", "Pallets", 2200, 1400, 15),
-            Item(9, "LABEL-A4", "Shipping labels A4 (100)", "Labels", 40, 22, 30),
-            Item(10, "TAPE-CLR", "Clear packing tape", "Packaging", 35, 18, 28),
-            Item(11, "EDGE-BD", "Edge boards (pair)", "Protection", 110, 65, 20),
-            Item(12, "BAND-PET", "PET banding roll", "Securing", 250, 160, 18),
-            Item(13, "SLIP-SHT", "Slip sheet", "Pallets", 75, 40, 24),
-            Item(14, "DUNN-BAG", "Dunnage air bags", "Protection", 320, 200, 16),
-            Item(15, "SEAL-MET", "Metal seals (10)", "Securing", 60, 30, 30),
-            Item(16, "GLOVE-M", "Work gloves M", "Safety", 45, 22, 35)
-        ];
-
-        dbContext.SupplyCatalogItems.AddRange(items);
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static SupplyCatalogItem Item(
-        int sort,
-        string sku,
-        string name,
-        string category,
-        long platformCents,
-        long wholesaleCents,
-        decimal marginSplit) =>
+    private static OrderSupply Supply(
+        Guid orderId, string sku, string name, string category, int qty, long unitPrice) =>
         new()
         {
-            Id = Guid.Parse($"d1000000-0000-0000-0000-0000000000{sort:D2}"),
+            Id = Guid.NewGuid(),
+            OrderId = orderId,
             Sku = sku,
             Name = name,
             Category = category,
-            PlatformPriceCents = platformCents,
-            WholesalePriceCents = wholesaleCents,
-            MarginSplitPercent = marginSplit,
-            SortOrder = sort,
-            IsActive = true
+            Quantity = qty,
+            UnitPriceCents = unitPrice,
+            LineTotalCents = qty * unitPrice
         };
 }

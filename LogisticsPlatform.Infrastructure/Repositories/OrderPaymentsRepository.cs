@@ -34,7 +34,20 @@ public sealed class OrderPaymentsRepository(AppDbContext dbContext) : IOrderPaym
                 p => p.OrderId == orderId && p.Status == OrderPaymentStatus.Paid,
                 cancellationToken);
     }
-        
+
+    public async Task<(OrderType Type, OrderStatus Status)?> GetTypeAndStatusAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        var row = await dbContext.Orders
+            .AsNoTracking()
+            .Where(o => o.Id == orderId)
+            .Select(o => new { o.Type, o.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : (row.Type, row.Status);
+    }
+
     public async Task<OrderPaymentData> CreatePendingAsync(
         Guid orderId,
         long amountCents,
@@ -68,8 +81,25 @@ public sealed class OrderPaymentsRepository(AppDbContext dbContext) : IOrderPaym
             return;
 
         entity.StripeSessionId = stripeSessionId;
-        
+
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<OrderPaymentData?> GetLatestPendingWithSessionAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        OrderPayment? entity = await dbContext.OrderPayments
+            .AsNoTracking()
+            .Where(p =>
+                p.OrderId == orderId &&
+                p.Status == OrderPaymentStatus.Pending &&
+                p.StripeSessionId != null &&
+                p.StripeSessionId != "")
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return entity is null ? null : ToData(entity);
     }
 
     public async Task<OrderPaymentData?> GetByStripeSessionIdAsync(
@@ -79,6 +109,17 @@ public sealed class OrderPaymentsRepository(AppDbContext dbContext) : IOrderPaym
         OrderPayment? entity = await dbContext.OrderPayments
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.StripeSessionId == stripeSessionId, cancellationToken);
+
+        return entity is null ? null : ToData(entity);
+    }
+
+    public async Task<OrderPaymentData?> GetByIdAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        OrderPayment? entity = await dbContext.OrderPayments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
 
         return entity is null ? null : ToData(entity);
     }
@@ -113,7 +154,25 @@ public sealed class OrderPaymentsRepository(AppDbContext dbContext) : IOrderPaym
         return true;
     }
 
-    public async Task CancelPendingExceptAsync(
+    public async Task<bool> MarkCanceledIfPendingAsync(
+        Guid paymentId,
+        CancellationToken cancellationToken)
+    {
+        OrderPayment? entity = await dbContext.OrderPayments
+            .FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
+
+        if (entity is null)
+            return false;
+
+        if (entity.Status != OrderPaymentStatus.Pending)
+            return false;
+
+        entity.Status = OrderPaymentStatus.Canceled;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<IReadOnlyList<string>> CancelPendingExceptAsync(
         Guid orderId,
         Guid keepPaymentId,
         CancellationToken cancellationToken)
@@ -126,12 +185,23 @@ public sealed class OrderPaymentsRepository(AppDbContext dbContext) : IOrderPaym
             .ToListAsync(cancellationToken);
 
         if (pending.Count == 0)
-            return;
+            return [];
+
+        List<string> sessionIds = pending
+            .Select(p => p.StripeSessionId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
         foreach (OrderPayment payment in pending)
+        {
             payment.Status = OrderPaymentStatus.Canceled;
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        
+        return sessionIds;
     }
 
     private static OrderPaymentData ToData(OrderPayment entity) =>

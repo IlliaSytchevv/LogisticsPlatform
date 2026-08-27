@@ -40,8 +40,10 @@ public sealed class RegisterUserCommandHandler(
             return Result<RegisterResponse>.Invalid(errors);
         }
 
-        await userManagerWrapper.AddToRoleAsync(user, command.Role);
-        logger.LogInformation("User {UserId} registered with role {Role}", user.Id, command.Role);
+        string identityRole = MapDomainRole(command.Role).ToString();
+        await userManagerWrapper.AddToRoleAsync(user, identityRole);
+        
+        logger.LogInformation("User {UserId} registered with role {Role}", user.Id, identityRole);
 
         return Result.Success(new RegisterResponse(user.Id));
     }
@@ -58,8 +60,8 @@ public sealed class RegisterUserCommandHandler(
         return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[^1][0])}";
     }
 
-    private static UserRole MapDomainRole(string identityRole) =>
-        identityRole.Equals("Admin", StringComparison.OrdinalIgnoreCase)
-            ? UserRole.Admin
-            : UserRole.Dispatcher;
+    private static UserRole MapDomainRole(string role)
+    {
+        return Enum.Parse<UserRole>(role, ignoreCase: true);
+    }
 }

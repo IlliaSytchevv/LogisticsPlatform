@@ -28,6 +28,7 @@ public sealed record OrderDetailsResponse(
     string? LoadingStatusLabel,
     bool HasAlert,
     string? AlertReason,
+    bool AwaitingClientAction,
     OrderAssignedDockResponse AssignedDock,
     OrderQtyBlockResponse Expected,
     OrderQtyBlockResponse Actual,

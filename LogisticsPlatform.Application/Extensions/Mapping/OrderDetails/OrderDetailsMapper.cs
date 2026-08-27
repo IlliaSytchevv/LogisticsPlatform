@@ -42,6 +42,7 @@ public static class OrderDetailsMapper
             data.LoadingStatusLabel,
             data.HasAlert,
             data.AlertReason,
+            data.AwaitingClientAction,
             new OrderAssignedDockResponse(
                 data.HubName,
                 data.DockCode,

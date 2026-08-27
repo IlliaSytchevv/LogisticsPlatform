@@ -4,8 +4,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { OrderDetails, OrderStatus } from "@/types/orders";
 import { ordersService } from "@/api/services/orders.service";
+import { ValidationErrorBanner } from "@/components/freitty/validation-error-banner";
+import { getErrorIssues, type ApiValidationIssue } from "@/lib/api/errors";
 import { ordersKeys } from "../../_hooks/orders-queries";
-import { ORDER_STATUS_OPTIONS } from "../_lib/format";
+import { allowedOrderStatusOptions } from "../_lib/format";
 import { DetailModal } from "./detail-modal";
 
 type Props = {
@@ -18,6 +20,7 @@ const HEARTBEAT_MS = 15_000;
 
 export function EditOrderModal({ order, open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const [number, setNumber] = useState(order.number);
   const [customerName, setCustomerName] = useState(order.customerName ?? "");
   const [primaryReference, setPrimaryReference] = useState(order.primaryReference ?? "");
   const [phone, setPhone] = useState(order.phone ?? "");
@@ -32,14 +35,22 @@ export function EditOrderModal({ order, open, onClose }: Props) {
   const [stockStatusLabel, setStockStatusLabel] = useState(order.stockStatusLabel ?? "");
   const [loadingStatusLabel, setLoadingStatusLabel] = useState(order.loadingStatusLabel ?? "");
   const [status, setStatus] = useState<OrderStatus>(order.status);
-  const [error, setError] = useState<string | null>(null);
+  const [awaitingClientAction, setAwaitingClientAction] = useState(order.awaitingClientAction);
+  const [errorIssues, setErrorIssues] = useState<ApiValidationIssue[] | null>(null);
+
+  const isDraftNumber = (value: string) =>
+    value.trim().toUpperCase().startsWith("DRAFT-");
+  const mustRenameDraftNumber =
+    status !== 1 && isDraftNumber(number);
 
   useEffect(() => {
     if (!open) return;
 
     const tick = () => {
       void ordersService.heartbeatEditLock(order.id).catch(() => {
-        setError("Edit lock was lost. Close and try again.");
+        setErrorIssues([
+          { message: "Edit lock was lost. Close and try again." },
+        ]);
       });
     };
 
@@ -66,6 +77,7 @@ export function EditOrderModal({ order, open, onClose }: Props) {
   const saveMutation = useMutation({
     mutationFn: () =>
       ordersService.update(order.id, {
+        number: number.trim() || null,
         customerName: customerName || null,
         primaryReference: primaryReference || null,
         phone: phone || null,
@@ -80,13 +92,15 @@ export function EditOrderModal({ order, open, onClose }: Props) {
         stockStatusLabel: stockStatusLabel || null,
         loadingStatusLabel: loadingStatusLabel || null,
         status,
+        awaitingClientAction,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ordersKeys.detail(order.id) });
       await queryClient.invalidateQueries({ queryKey: ordersKeys.all });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       closeAndRelease();
     },
-    onError: (err) => setError(err instanceof Error ? err.message : "Save failed"),
+    onError: (err) => setErrorIssues(getErrorIssues(err)),
   });
 
   const field = (label: string, node: ReactNode) => (
@@ -99,6 +113,19 @@ export function EditOrderModal({ order, open, onClose }: Props) {
   return (
     <DetailModal open={open} title={`Edit ${order.number}`} onClose={closeAndRelease} width={520}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {field(
+          "Order #",
+          <input
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            style={{
+              width: "100%",
+              ...(mustRenameDraftNumber
+                ? { borderColor: "#DC2626", outlineColor: "#DC2626" }
+                : {}),
+            }}
+          />,
+        )}
         {field(
           "Customer",
           <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={{ width: "100%" }} />,
@@ -167,13 +194,30 @@ export function EditOrderModal({ order, open, onClose }: Props) {
           onChange={(e) => setStatus(Number(e.target.value) as OrderStatus)}
           style={{ width: "100%" }}
         >
-          {ORDER_STATUS_OPTIONS.map((o) => (
+          {allowedOrderStatusOptions(order.status).map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
         </select>,
       )}
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 13,
+          marginBottom: 12,
+          cursor: "pointer",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={awaitingClientAction}
+          onChange={(e) => setAwaitingClientAction(e.target.checked)}
+        />
+        Awaiting client action (shows in Notifications)
+      </label>
       {field(
         "Warehouse note",
         <textarea
@@ -183,12 +227,21 @@ export function EditOrderModal({ order, open, onClose }: Props) {
           style={{ width: "100%" }}
         />,
       )}
-      {error && <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>{error}</div>}
+      {mustRenameDraftNumber && (
+        <div style={{ color: "#B45309", fontSize: 12, marginBottom: 8 }}>
+          Change Order # before leaving Draft — <code>DRAFT-…</code> numbers are not allowed for New /
+          In Progress / etc.
+        </div>
+      )}
+      <ValidationErrorBanner issues={errorIssues} title="Could not save order:" />
       <button
         type="button"
         className="btn btn-primary"
-        disabled={saveMutation.isPending}
-        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending || mustRenameDraftNumber}
+        onClick={() => {
+          setErrorIssues(null);
+          saveMutation.mutate();
+        }}
       >
         {saveMutation.isPending ? "Saving…" : "Save changes"}
       </button>
