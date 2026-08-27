@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
+using StackExchange.Redis;
 
 namespace LogisticPlatform.IntegrationTests;
 
@@ -25,12 +28,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
 
+        string redisConnection = EnsureAbortConnectFalse(_redisConnection);
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _postgresConnection,
-                ["Redis:ConnectionString"] = _redisConnection,
+                ["Redis:ConnectionString"] = redisConnection,
                 ["Stripe:SecretKey"] = "sk_test_integration_fake",
                 ["Stripe:WebhookSecret"] = "whsec_integration_test",
                 ["Stripe:SuccessUrlTemplate"] = "http://localhost/orders/{orderId}?payment=success",
@@ -48,9 +53,28 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(_postgresConnection));
 
+            services.RemoveAll<IConnectionMultiplexer>();
+            services.RemoveAll<RedLockFactory>();
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+            services.AddSingleton<RedLockFactory>(sp =>
+            {
+                var multiplexer = (ConnectionMultiplexer)sp.GetRequiredService<IConnectionMultiplexer>();
+                return RedLockFactory.Create(new List<RedLockMultiplexer> { new(multiplexer) });
+            });
+
             services.RemoveAll<IStripeCheckoutService>();
             services.AddScoped<IStripeCheckoutService, FakeStripeCheckoutService>();
         });
+    }
+
+    private static string EnsureAbortConnectFalse(string connectionString)
+    {
+        if (connectionString.Contains("abortConnect=", StringComparison.OrdinalIgnoreCase))
+        {
+            return connectionString;
+        }
+
+        return $"{connectionString},abortConnect=false";
     }
 
     private static void RemoveDbContextRegistrations(IServiceCollection services)

@@ -21,6 +21,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RedLockNet.SERedis;
 using RedLockNet.SERedis.Configuration;
@@ -56,12 +57,12 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
-        RedisOptions redisOptions = configuration
-            .GetSection(RedisOptions.SectionName)
-            .Get<RedisOptions>()
-            ?? new RedisOptions();
-
-        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions.ConnectionString));
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            string connectionString = sp.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString
+                ?? throw new InvalidOperationException("Redis:ConnectionString is missing.");
+            return ConnectionMultiplexer.Connect(connectionString);
+        });
         services.AddSingleton<RedLockFactory>(sp =>
         {
             var multiplexer = (ConnectionMultiplexer)sp.GetRequiredService<IConnectionMultiplexer>();
