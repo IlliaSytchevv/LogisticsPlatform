@@ -10,8 +10,8 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const setUser = useAuthStore((s) => s.setUser);
 
-  const [username, setUsername] = useState("testuser");
-  const [password, setPassword] = useState("Test123!");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

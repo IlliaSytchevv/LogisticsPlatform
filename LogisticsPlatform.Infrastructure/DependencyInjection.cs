@@ -61,7 +61,9 @@ public static class DependencyInjection
         {
             string connectionString = sp.GetRequiredService<IOptions<RedisOptions>>().Value.ConnectionString
                 ?? throw new InvalidOperationException("Redis:ConnectionString is missing.");
-            return ConnectionMultiplexer.Connect(connectionString);
+            var options = ConfigurationOptions.Parse(connectionString, ignoreUnknown: true);
+            options.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(options);
         });
         services.AddSingleton<RedLockFactory>(sp =>
         {
