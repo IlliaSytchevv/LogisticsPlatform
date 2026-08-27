@@ -153,18 +153,15 @@ export default function OrderDetailPage({
   };
 
   const isDraftOrClosed = order.status === 1 || order.status === 6;
-  const isCrossDock = order.type === 1;
   const payDisabled =
-    sessionLoading || !canWrite || payBusy || order.isPaid || isDraftOrClosed || !isCrossDock;
+    sessionLoading || !canWrite || payBusy || order.isPaid || isDraftOrClosed;
   const payTitle = !canWrite
     ? "Payment requires Admin or Dispatcher."
     : order.isPaid
       ? "Already paid"
       : isDraftOrClosed
         ? "You cannot pay for an order in Draft or Closed status."
-        : !isCrossDock
-          ? "Payment is only available for Cross-Dock orders."
-          : "Pay supplies";
+        : "Pay supplies";
   const payGreyStyle = payDisabled && !payBusy
     ? {
         color: "#9CA3AF",

@@ -54,14 +54,6 @@ public sealed class CreateOrderCheckoutCommandHandler(
         if (typeAndStatus is null)
             return Result<CreateCheckoutResponse>.NotFound();
 
-        if (typeAndStatus.Value.Type != OrderType.CrossDock)
-        {
-            return Result<CreateCheckoutResponse>.Invalid(
-            [
-                new ValidationError("Type", "Payment is only available for Cross-Dock orders.")
-            ]);
-        }
-
         if (typeAndStatus.Value.Status is OrderStatus.Draft or OrderStatus.Closed)
         {
             return Result<CreateCheckoutResponse>.Invalid(
