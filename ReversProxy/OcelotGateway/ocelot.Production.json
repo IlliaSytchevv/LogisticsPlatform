@@ -5,7 +5,7 @@
       "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "ca-logistics-api", "Port": 8080 }
+        { "Host": "ca-logistics-api", "Port": 80 }
       ],
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
