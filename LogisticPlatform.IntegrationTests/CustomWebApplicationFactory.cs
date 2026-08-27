@@ -40,10 +40,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Stripe:WebhookSecret"] = "whsec_integration_test",
                 ["Stripe:SuccessUrlTemplate"] = "http://localhost/orders/{orderId}?payment=success",
                 ["Stripe:CancelUrlTemplate"] = "http://localhost/orders/{orderId}?payment=cancel",
-                ["PhotoStorage:RootPath"] = Path.Combine(
-                    Path.GetTempPath(),
-                    "logistics-test-photos",
-                    Guid.NewGuid().ToString("N")),
+                ["PhotoStorage:ConnectionString"] = "UseDevelopmentStorage=true",
+                ["PhotoStorage:ContainerName"] = "photos-test",
             });
         });
 
@@ -64,6 +62,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IStripeCheckoutService>();
             services.AddScoped<IStripeCheckoutService, FakeStripeCheckoutService>();
+
+            services.RemoveAll<IPhotoBlobStore>();
+            services.AddSingleton<IPhotoBlobStore, InMemoryPhotoBlobStore>();
         });
     }
 

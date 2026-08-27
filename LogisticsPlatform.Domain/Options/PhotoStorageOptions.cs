@@ -4,5 +4,9 @@ public sealed class PhotoStorageOptions
 {
     public const string SectionName = "PhotoStorage";
 
-    public string RootPath { get; set; } = "App_Data/photos";
+    /// <summary>Azure Storage / Azurite connection string.</summary>
+    public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>Blob container name (created if missing).</summary>
+    public string ContainerName { get; set; } = "photos";
 }

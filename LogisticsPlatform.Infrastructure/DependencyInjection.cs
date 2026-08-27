@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddSingleton<IOrderCheckoutLock, OrderCheckoutLock>();
         services.AddSingleton<INotificationsFeedCacheInvalidator, NotificationsFeedCacheInvalidator>();
 
-        services.AddSingleton<IPhotoBlobStore, LocalPhotoBlobStore>();
+        services.AddSingleton<IPhotoBlobStore, AzureBlobPhotoStore>();
         services.AddScoped<IUserManagerWrapper, UserManagerWrapper>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
