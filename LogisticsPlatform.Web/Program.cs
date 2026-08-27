@@ -1,6 +1,8 @@
 using LogisticsPlatform.Middleware;
 using LogisticsPlatform.Infrastructure;
+using LogisticsPlatform.Infrastructure.Database;
 using LogisticsPlatform.Swagger;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,10 +46,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
+        string[] configured = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+        string[] defaults =
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ];
+
         policy
-            .WithOrigins(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000")
+            .WithOrigins(defaults.Concat(configured).Distinct().ToArray())
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -56,6 +63,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+// Apply EF migrations on startup (local networks often block outbound Postgres :5432).
+using (IServiceScope scope = app.Services.CreateScope())
+{
+    AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseExceptionHandler();
 
