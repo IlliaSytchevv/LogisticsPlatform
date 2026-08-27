@@ -41,19 +41,13 @@ app.Use(async (context, next) =>
     var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
         .CreateLogger("OcelotGateway.Request");
 
-    logger.LogInformation(
-        "IN {Method} {Path}{Query}",
-        context.Request.Method,
-        context.Request.Path,
-        context.Request.QueryString);
+    logger.LogInformation("IN {Method} {Path}{Query}", context.Request.Method,
+        context.Request.Path, context.Request.QueryString);
 
     await next();
 
-    logger.LogInformation(
-        "OUT {StatusCode} {Method} {Path}",
-        context.Response.StatusCode,
-        context.Request.Method,
-        context.Request.Path);
+    logger.LogInformation("OUT {StatusCode} {Method} {Path}", context.Response.StatusCode,
+        context.Request.Method, context.Request.Path);
 });
 
 app.UseIpRateLimiting();
