@@ -3,9 +3,9 @@
     {
       "UpstreamPathTemplate": "/api/{everything}",
       "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 7131 }
+        { "Host": "ca-logistics-api", "Port": 8080 }
       ],
       "LoadBalancerOptions": {
         "Type": "RoundRobin"
@@ -19,6 +19,6 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://localhost:5124"
+    "BaseUrl": "http://ca-logistics-gateway"
   }
 }

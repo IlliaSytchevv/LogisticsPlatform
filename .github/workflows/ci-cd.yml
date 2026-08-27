@@ -1,0 +1,161 @@
+name: CI CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  API_IMAGE: logistics-api
+  GATEWAY_IMAGE: logistics-gateway
+  WEB_IMAGE: logistics-web
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore LogisticsPlatform.sln
+
+      - name: Build
+        run: dotnet build LogisticsPlatform.sln -c Release --no-restore
+
+      - name: Unit tests
+        run: >
+          dotnet test LogisticPlatform.UnitTests/LogisticPlatform.UnitTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory TestResults
+
+      - name: Integration tests
+        run: >
+          dotnet test LogisticPlatform.IntegrationTests/LogisticPlatform.IntegrationTests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=integration.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: ignore
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: .NET Tests
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+
+  docker-deploy:
+    name: Docker build, push, deploy
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          echo "api=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.API_IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "api_latest=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.API_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+          echo "gateway=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.GATEWAY_IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "gateway_latest=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.GATEWAY_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+          echo "web=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.WEB_IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "web_latest=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.WEB_IMAGE }}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: LogisticsPlatform.Web/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.api }}
+            ${{ steps.tags.outputs.api_latest }}
+
+      - name: Build and push Gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ReversProxy/OcelotGateway/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.gateway }}
+            ${{ steps.tags.outputs.gateway_latest }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: LogisticPlatformFrontend
+          file: LogisticPlatformFrontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          tags: |
+            ${{ steps.tags.outputs.web }}
+            ${{ steps.tags.outputs.web_latest }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Variant A: one API Container App with minReplicas=2 (two backend instances).
+      # Ingress: API = internal; Gateway + Web = external.
+      # App names must match ocelot.Production.json hosts: ca-logistics-api, ca-logistics-gateway.
+      - name: Deploy API
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.API_CONTAINER_APP_NAME }}
+          imageToDeploy: ${{ steps.tags.outputs.api }}
+
+      - name: Scale API to 2 replicas
+        run: >
+          az containerapp update
+          --name "${{ secrets.API_CONTAINER_APP_NAME }}"
+          --resource-group "${{ secrets.RESOURCE_GROUP }}"
+          --min-replicas 2
+          --max-replicas 4
+
+      - name: Deploy Gateway
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.GATEWAY_CONTAINER_APP_NAME }}
+          imageToDeploy: ${{ steps.tags.outputs.gateway }}
+
+      - name: Deploy Frontend
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.WEB_CONTAINER_APP_NAME }}
+          imageToDeploy: ${{ steps.tags.outputs.web }}

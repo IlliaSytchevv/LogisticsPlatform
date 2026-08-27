@@ -6,9 +6,16 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"ocelot.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+if (builder.Environment.IsProduction())
+{
+    builder.Configuration.AddJsonFile("ocelot.Production.json", optional: false, reloadOnChange: true);
+}
+else
+{
+    builder.Configuration
+        .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true)
+        .AddJsonFile($"ocelot.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+}
 
 var redisConnection =
     builder.Configuration["Redis:ConnectionString"]
@@ -46,19 +53,13 @@ app.Use(async (context, next) =>
     var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
         .CreateLogger("OcelotGateway.Request");
 
-    logger.LogInformation(
-        "IN {Method} {Path}{Query}",
-        context.Request.Method,
-        context.Request.Path,
-        context.Request.QueryString);
+    logger.LogInformation("IN {Method} {Path}{Query}", context.Request.Method, 
+        context.Request.Path, context.Request.QueryString);
 
     await next();
 
-    logger.LogInformation(
-        "OUT {StatusCode} {Method} {Path}",
-        context.Response.StatusCode,
-        context.Request.Method,
-        context.Request.Path);
+    logger.LogInformation("OUT {StatusCode} {Method} {Path}", context.Response.StatusCode,
+        context.Request.Method, context.Request.Path);
 });
 
 app.UseIpRateLimiting();
