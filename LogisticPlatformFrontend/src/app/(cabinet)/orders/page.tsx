@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ordersService } from "@/api/services/orders.service";
@@ -23,6 +23,14 @@ import {
 const PAGE_SIZE = 6;
 
 export default function OrdersPage() {
+  return (
+    <Suspense fallback={<p style={{ color: "#6B7280", fontSize: 13 }}>Loading orders…</p>}>
+      <OrdersPageContent />
+    </Suspense>
+  );
+}
+
+function OrdersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { canWrite, isDriver, loading: sessionLoading } = useSession();

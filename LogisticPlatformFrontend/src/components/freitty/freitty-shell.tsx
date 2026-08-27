@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { getSessionAction } from "@/actions/auth/get-session.action";
 import { GlobalOrderSearch } from "@/components/freitty/global-order-search";
 import { HelpModal } from "@/components/freitty/help-modal";
@@ -86,7 +86,9 @@ export function FreittyShell({
 
       <main className="fc-main">
         <div className="fc-topbar">
-          <GlobalOrderSearch placeholder={searchPlaceholder} />
+          <Suspense fallback={<div className="fc-search" aria-hidden />}>
+            <GlobalOrderSearch placeholder={searchPlaceholder} />
+          </Suspense>
           <div className="spacer" />
           <div style={{ position: "relative" }}>
             <button
