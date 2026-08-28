@@ -123,6 +123,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         var result = await Dispatcher.Send(
             new GetOperationCommentsQuery(orderId, operationId),
             cancellationToken);
+        
         return GetActionResult(result);
     }
 
@@ -137,6 +138,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         var result = await Dispatcher.Send(
             new AddOperationCommentCommand(orderId, operationId, request.Text, GetCurrentUserDisplayName()),
             cancellationToken);
+        
         return GetActionResult(result);
     }
 
@@ -149,6 +151,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         var result = await Dispatcher.Send(
             new GetOperationPhotosQuery(orderId, operationId),
             cancellationToken);
+        
         return GetActionResult(result);
     }
 
@@ -207,6 +210,7 @@ public sealed class OrderDetailsController(IDispatcher dispatcher) : ApiControll
         var result = await Dispatcher.Send(
             new DeleteOperationPhotoCommand(orderId, operationId, photoId),
             cancellationToken);
+        
         return GetActionResult(result);
     }
 

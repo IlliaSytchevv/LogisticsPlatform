@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ordersService } from "@/api/services/orders.service";
 import type { OrderListTab, OrdersListParams } from "@/types/orders";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSession } from "@/hooks/use-session";
 import { NewOrderModal } from "./_components/new-order-modal";
 import { OrderListCard } from "./_components/order-list-card";
@@ -33,6 +34,7 @@ export default function OrdersPage() {
 function OrdersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobile = useMediaQuery("(max-width: 1100px)");
   const { canWrite, isDriver, loading: sessionLoading } = useSession();
   const q = (searchParams.get("q") ?? "").trim();
   const [tab, setTab] = useState<OrderListTab>(1);
@@ -230,22 +232,24 @@ function OrdersPageContent() {
           ))}
         </select>
 
-        <div className="view-toggle">
-          <button
-            type="button"
-            className={view === "cards" ? "active" : undefined}
-            onClick={() => setView("cards")}
-          >
-            ⊞ Cards
-          </button>
-          <button
-            type="button"
-            className={view === "table" ? "active" : undefined}
-            onClick={() => setView("table")}
-          >
-            ☰ Table
-          </button>
-        </div>
+        {!isMobile ? (
+          <div className="view-toggle">
+            <button
+              type="button"
+              className={view === "cards" ? "active" : undefined}
+              onClick={() => setView("cards")}
+            >
+              ⊞ Cards
+            </button>
+            <button
+              type="button"
+              className={view === "table" ? "active" : undefined}
+              onClick={() => setView("table")}
+            >
+              ☰ Table
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {listLoading ? (
@@ -256,7 +260,7 @@ function OrdersPageContent() {
           {listErr instanceof Error ? `: ${listErr.message}` : ""}. Is API running on{" "}
           {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5124"}?
         </p>
-      ) : view === "table" ? (
+      ) : !isMobile && view === "table" ? (
         <OrdersTable items={items} />
       ) : (
         <div className="cards-grid cols-3">

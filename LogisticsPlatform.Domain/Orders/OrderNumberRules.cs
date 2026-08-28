@@ -1,5 +1,3 @@
-using LogisticsPlatform.Domain.Enums;
-
 namespace LogisticsPlatform.Domain.Orders;
 
 public static class OrderNumberRules

@@ -152,6 +152,21 @@
   font-size: 11px;
 }
 
+@media (max-width: 1100px) {
+  .xd-meta {
+    grid-template-columns: 1fr;
+  }
+  .xd-meta-col {
+    grid-template-columns: 1fr 1fr;
+  }
+  .xd-dock-row {
+    grid-template-columns: 1fr;
+  }
+  .xd-qty-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media print {
   .xd-actions,
   .xd-hub-header,
