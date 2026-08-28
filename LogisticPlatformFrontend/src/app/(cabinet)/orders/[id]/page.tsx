@@ -144,7 +144,7 @@ export default function OrderDetailPage({
       setEditOpen(true);
     } catch (err) {
       setDocError(
-        conflictMessage(err, "Someone else is editing this order.") ??
+        conflictMessage(err, "Order is being edited in another tab or device.") ??
           (err instanceof Error ? err.message : "Could not open editor"),
       );
     } finally {

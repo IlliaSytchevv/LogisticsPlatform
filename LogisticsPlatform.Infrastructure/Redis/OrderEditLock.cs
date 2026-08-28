@@ -5,6 +5,7 @@ namespace LogisticsPlatform.Infrastructure.Redis;
 
 public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEditLock
 {
+    private IDatabase Db => multiplexer.GetDatabase();
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(45);
 
     // Only extend the lock if it's still yours (atomic: no race between read and expire).
@@ -23,8 +24,6 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
         return 0
         """;
 
-    private IDatabase Db => multiplexer.GetDatabase();
-
     public async Task<bool> TryAcquireAsync(
         Guid orderId,
         Guid userId,
@@ -32,19 +31,13 @@ public sealed class OrderEditLock(IConnectionMultiplexer multiplexer) : IOrderEd
     {
         string key = Key(orderId);
         string token = userId.ToString("D");
-        int ttlSeconds = (int)Ttl.TotalSeconds;
 
         if (await Db.StringSetAsync(key, token, Ttl, When.NotExists))
         {
             return true;
         }
 
-        RedisResult renewed = await Db.ScriptEvaluateAsync(
-            RenewIfOwnerScript,
-            [key],
-            [token, ttlSeconds]);
-
-        return (int)renewed == 1;
+        return false;
     }
 
     public async Task<bool> HeartbeatAsync(

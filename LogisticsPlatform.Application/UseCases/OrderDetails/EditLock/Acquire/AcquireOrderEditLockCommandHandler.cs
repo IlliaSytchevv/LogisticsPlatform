@@ -24,6 +24,6 @@ public sealed class AcquireOrderEditLockCommandHandler(
 
         return acquired
             ? Result.Success()
-            : Result.Conflict("Someone else is editing this order.");
+            : Result.Conflict("Order is being edited in another tab or device.");
     }
 }
